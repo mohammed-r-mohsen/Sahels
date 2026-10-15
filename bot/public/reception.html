@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>استقبال العيادة</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+            color: #222
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 720px;
+            margin: 0 auto 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06)
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 16px
+        }
+
+        input,
+        button {
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccd;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px
+        }
+
+        button {
+            background: #0a7;
+            color: #fff;
+            border: 0;
+            cursor: pointer;
+            font-weight: bold
+        }
+
+        button:hover {
+            background: #086
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-align: right
+        }
+
+        .msg {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px
+        }
+
+        .ok {
+            background: #d4edda;
+            color: #155724
+        }
+
+        .err {
+            background: #f8d7da;
+            color: #721c24
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>📋 Reception Lite</h1>
+        <div id="msg"></div>
+        <input id="token" placeholder="Reception Token" />
+        <input id="name" placeholder="اسم المريض" />
+        <input id="phone" placeholder="رقم الجوال" />
+        <input id="date" type="date" />
+        <input id="time" type="time" />
+        <input id="service" placeholder="الخدمة (كشف/استشارة)" value="كشف" />
+        <button onclick="book()">حجز</button>
+    </div>
+    <div class="card">
+        <h1>📅 مواعيد اليوم</h1>
+        <table id="list">
+            <thead>
+                <tr>
+                    <th>الوقت</th>
+                    <th>الاسم</th>
+                    <th>الجوال</th>
+                    <th>الخدمة</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script>
+        const $ = id => document.getElementById(id);
+        function show(text, ok = true) {
+            $('msg').innerHTML = `<div class="msg ${ok ? 'ok' : 'err'}">${text}</div>`;
+            setTimeout(() => $('msg').innerHTML = '', 4000);
+        }
+        async function book() {
+            const body = { patient_name: $('name').value, patient_phone: $('phone').value, date: $('date').value, time: $('time').value, service: $('service').value };
+            const r = await fetch('/api/reception/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-reception-token': $('token').value },
+                body: JSON.stringify(body)
+            });
+            const j = await r.json();
+            if (j.success) { show('✅ تم الحجز'); load(); }
+            else show('❌ ' + (j.error || 'فشل'), false);
+        }
+        async function load() {
+            const r = await fetch('/api/reception/today', { headers: { 'x-reception-token': $('token').value } });
+            if (!r.ok) return;
+            const rows = await r.json();
+            const tb = document.querySelector('#list tbody');
+            tb.innerHTML = rows.map(b => `<tr><td>${b.time}</td><td>${b.patient_name || ''}</td><td>${b.patient_phone}</td><td>${b.service || ''}</td><td>${b.status}</td></tr>`).join('');
+        }
+        setInterval(load, 30000);
+    </script>
+</body>
+
+</html>
