@@ -1,4 +1,5 @@
 // bot/Server_2.js
+// الإصدار v3.3 - تحديث AI Agent مع check_availability + رسائل تضارب واضحة
 process.env.TZ = 'Asia/Riyadh';
 
 const crypto = require('crypto');
@@ -18,6 +19,13 @@ const { getClinicContext, invalidateCache } = require('./lib/features');
 const { checkAccess, requireActiveSubscription } = require('./lib/subscription-guard');
 const { createDepositInvoice, scheduleDepositExpiry } = require('./lib/deposit');
 
+// ============================================
+// AI Agent imports
+// ============================================
+const { chatWithAI, clearHistory } = require('./lib/ai');
+const { detectSensitivity } = require('./lib/sensitive');
+const { createToolExecutor } = require('./lib/ai-tools');
+
 const app = express();
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'sahels_verify';
@@ -25,72 +33,106 @@ const META_APP_SECRET = process.env.META_APP_SECRET;
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 const RECEPTION_TOKEN = process.env.RECEPTION_TOKEN || 'reception-secret';
 
-console.log(`[BOOT] Sahels v3.2 mode=${TENANCY_MODE} clinic=${isSingle() ? getStaticClinicId() : 'multi'}`);
+console.log(`[BOOT] Sahels v3.3 mode=${TENANCY_MODE} clinic=${isSingle() ? getStaticClinicId() : 'multi'}`);
 
 initQueue();
 
+// ============================================
+// State management (Redis)
+// ============================================
 let stateConn = null;
 if (process.env.REDIS_URL) {
-    stateConn = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+  stateConn = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
 }
 const stateKey = (clinicId, channel, from) => `state:${clinicId}:${channel}:${from}`;
 
 async function getState(clinicId, channel, from) {
-    if (!stateConn) return { step: 'idle' };
-    const raw = await stateConn.get(stateKey(clinicId, channel, from));
-    return raw ? JSON.parse(raw) : { step: 'idle' };
+  if (!stateConn) return { step: 'idle' };
+  const raw = await stateConn.get(stateKey(clinicId, channel, from));
+  return raw ? JSON.parse(raw) : { step: 'idle' };
 }
 async function setState(clinicId, channel, from, state, ttl = 900) {
-    if (!stateConn) return;
-    await stateConn.set(stateKey(clinicId, channel, from), JSON.stringify(state), 'EX', ttl);
+  if (!stateConn) return;
+  await stateConn.set(stateKey(clinicId, channel, from), JSON.stringify(state), 'EX', ttl);
 }
 async function clearState(clinicId, channel, from) {
-    if (!stateConn) return;
-    await stateConn.del(stateKey(clinicId, channel, from));
+  if (!stateConn) return;
+  await stateConn.del(stateKey(clinicId, channel, from));
 }
 
+// ============================================
+// sendToChannel helper
+// ============================================
 async function sendToChannel(ctx, channel, to, text, opts = {}) {
-    if (channel === 'instagram') {
-        return sendInstagram({ igUserId: ctx.ig_id, token: ctx.ig_token, to, text });
+  if (channel === 'instagram') {
+    return sendInstagram({ igUserId: ctx.ig_id, token: ctx.ig_token, to, text });
+  }
+  return sendWhatsApp({ phoneId: ctx.wa_phone_id, token: ctx.wa_token, to, text, template: opts.template });
+}
+
+// ============================================
+// bookWithLock - حجز آمن ضد التضارب
+// ============================================
+async function bookWithLock({ clinic_id, patient_phone, patient_name, date, time, source, service, capacity = 1 }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Advisory lock لمنع التضارب
+    const lockKey = Math.abs(
+      `${clinic_id}|${date}|${time}`.split('')
+        .reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)
+    );
+    await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
+
+    // عد الحجوزات الحالية في هذا الوقت
+    const countRes = await client.query(
+      `SELECT COUNT(*) AS c FROM bookings
+             WHERE clinic_id=$1 AND date=$2 AND time=$3
+               AND status IN ('pending','confirmed')`,
+      [clinic_id, date, time]
+    );
+    const currentCount = parseInt(countRes.rows[0].c, 10);
+
+    if (currentCount >= capacity) {
+      await client.query('ROLLBACK');
+      return {
+        ok: false,
+        error: `الموعد ${time} ممتلئ (${currentCount}/${capacity}). اختر وقتاً آخر.`
+      };
     }
-    return sendWhatsApp({ phoneId: ctx.wa_phone_id, token: ctx.wa_token, to, text, template: opts.template });
-}
 
-async function bookWithLock({ clinic_id, patient_phone, patient_name, date, time, source, service }) {
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const lockKey = Math.abs(`${clinic_id}|${date}|${time}`.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0));
-        await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
-        const dup = await client.query(
-            `SELECT id FROM bookings WHERE clinic_id=$1 AND date=$2 AND time=$3 AND status IN ('pending','confirmed') FOR UPDATE`,
-            [clinic_id, date, time]
-        );
-        if (dup.rows.length > 0) {
-            await client.query('ROLLBACK');
-            return { ok: false, error: 'الوقت محجوز. اكتب "انتظار" للانتظار.' };
-        }
-        const ins = await client.query(
-            `INSERT INTO bookings (clinic_id, patient_phone, patient_name, date, time, service, source, status, consent_given)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'confirmed',TRUE) RETURNING *`,
-            [clinic_id, patient_phone, patient_name, date, time, service, source]
-        );
-        await client.query('COMMIT');
-        return { ok: true, booking: ins.rows[0] };
-    } catch (e) {
-        await client.query('ROLLBACK');
-        if (e.code === '23505') return { ok: false, error: 'الوقت محجوز.' };
-        throw e;
-    } finally { client.release(); }
+    // إدراج الحجز
+    const ins = await client.query(
+      `INSERT INTO bookings
+               (clinic_id, patient_phone, patient_name, date, time, service, source, status, consent_given, slot_capacity)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,'confirmed',TRUE,$8)
+             RETURNING *`,
+      [clinic_id, patient_phone, patient_name, date, time, service, source, capacity]
+    );
+
+    await client.query('COMMIT');
+    return { ok: true, booking: ins.rows[0] };
+
+  } catch (e) {
+    await client.query('ROLLBACK');
+    if (e.code === '23505') {
+      return { ok: false, error: `الموعد ${time} محجوز.` };
+    }
+    throw e;
+  } finally {
+    client.release();
+  }
 }
 
 // ============================================
-// handleIncoming الجديد - AI Powered
+// Tool Executor - معالج الأدوات
 // ============================================
-const { chatWithAI, TOOLS, clearHistory } = require('./lib/ai');
-const { detectSensitivity } = require('./lib/sensitive');
-const { createToolExecutor } = require('./lib/ai-tools');
 const executeTool = createToolExecutor({ pool, bookWithLock });
+
+// ============================================
+// handleIncoming - المعالج الرئيسي
+// ============================================
 async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) {
   const access = await checkAccess(clinicId, channel);
   if (!access.allowed) {
@@ -101,9 +143,10 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
         await sendWhatsApp({
           phoneId: ctx.wa_phone_id || phoneNumberId,
           token: ctx.wa_token || process.env.WA_TOKEN,
-          to: from, text: access.message
+          to: from,
+          text: access.message
         });
-      } catch (e) {}
+      } catch (e) { /* silent */ }
     }
     return;
   }
@@ -192,10 +235,9 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
     await pool.query(
       'INSERT INTO access_logs (clinic_id, action, details) VALUES ($1,$2,$3)',
       [clinicId, `sensitive_${sensitivity.type}`, JSON.stringify({ from, channel, matched: sensitivity.matched })]
-    ).catch(() => {});
+    ).catch(() => { });
 
     if (sensitivity.type === 'emergency') {
-      // امسح المحادثة لأنه لا يمكن المتابعة
       clearHistory(clinicId, from);
     }
     return;
@@ -214,7 +256,6 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
     if (del.rows.length > 0) {
       const b = del.rows[0];
       await sendToChannel(ctx, channel, from, `✅ تم إلغاء موعدك يوم ${b.date} الساعة ${b.time}.\n\nنأمل رؤيتك قريباً!`);
-      // ترقية من قائمة الانتظار
       const next = await pool.query(
         'SELECT * FROM waiting_list WHERE clinic_id=$1 ORDER BY created_at LIMIT 1',
         [clinicId]
@@ -246,7 +287,7 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
     await pool.query(
       'INSERT INTO access_logs (clinic_id, action, details) VALUES ($1,$2,$3)',
       [clinicId, 'human_escalation', JSON.stringify({ from, channel })]
-    ).catch(() => {});
+    ).catch(() => { });
     await sendToChannel(ctx, channel, from,
       '🔄 تم تحويلك لموظف بشري. سيتواصل معك في أقرب وقت.\n\nشكراً لصبرك.');
     return;
@@ -260,51 +301,10 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
       clinicId,
       from,
       userMessage: text,
-      tools: TOOLS,
+      // ✅ onToolCall يستخدم executeTool المركزي
+      // (يحتوي على check_availability + رسائل التضارب)
       onToolCall: async (name, args) => {
-        // تنفيذ الأدوات
-        if (name === 'book_appointment') {
-          const r = await bookWithLock({
-            clinic_id: clinicId,
-            patient_phone: from,
-            patient_name: args.patient_name,
-            date: args.date,
-            time: args.time,
-            source: channel,
-            service: args.service
-          });
-          return r.ok
-            ? { success: true, booking_id: r.booking.id, message: 'تم الحجز' }
-            : { success: false, error: r.error };
-        }
-
-        if (name === 'cancel_appointment') {
-          const del = await pool.query(
-            `DELETE FROM bookings WHERE clinic_id=$1 AND patient_phone=$2 AND date>=CURRENT_DATE RETURNING id`,
-            [clinicId, from]
-          );
-          return { success: del.rows.length > 0, count: del.rows.length };
-        }
-
-        if (name === 'get_my_appointments') {
-          const r = await pool.query(
-            `SELECT id, date, time, service, status FROM bookings
-             WHERE clinic_id=$1 AND patient_phone=$2 AND date>=CURRENT_DATE
-             ORDER BY date, time`,
-            [clinicId, from]
-          );
-          return { appointments: r.rows };
-        }
-
-        if (name === 'escalate_to_human') {
-          await pool.query(
-            'INSERT INTO access_logs (clinic_id, action, details) VALUES ($1,$2,$3)',
-            [clinicId, 'ai_escalation', JSON.stringify({ from, channel })]
-          ).catch(() => {});
-          return { success: true, message: 'تم التحويل' };
-        }
-
-        return { error: 'unknown_tool' };
+        return executeTool(name, args, { clinicId, from, channel });
       }
     });
 
@@ -315,8 +315,12 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
     // تسجيل محادثة AI
     await pool.query(
       'INSERT INTO access_logs (clinic_id, action, details) VALUES ($1,$2,$3)',
-      [clinicId, 'ai_chat', JSON.stringify({ from, channel, tools_used: result.toolResults?.length || 0 })]
-    ).catch(() => {});
+      [clinicId, 'ai_chat', JSON.stringify({
+        from,
+        channel,
+        tools_used: result.toolResults?.length || 0
+      })]
+    ).catch(() => { });
 
   } catch (e) {
     console.error('[AI ERROR]', e.message);
@@ -325,297 +329,372 @@ async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) 
   }
 }
 
+// ============================================
+// Webhook - WhatsApp + Instagram
+// ============================================
 app.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), async (req, res) => {
-    try {
-        if (META_APP_SECRET) {
-            const sig = req.headers['x-hub-signature-256'] || '';
-            const expected = 'sha256=' + crypto.createHmac('sha256', META_APP_SECRET).update(req.body).digest('hex');
-            if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
-                return res.sendStatus(403);
-            }
-        }
-        const body = JSON.parse(req.body.toString('utf8'));
-        const entry = body.entry?.[0];
-        if (!entry) return res.sendStatus(200);
-
-        if (entry.changes?.[0]?.value?.messages) {
-            const v = entry.changes[0].value;
-            const phone_number_id = v.metadata.phone_number_id;
-            const from = v.messages[0].from;
-            const text = v.messages[0].text?.body || '';
-
-            if (v.messages[0].type === 'interactive' && v.messages[0].interactive?.type === 'nfm_reply') {
-                try {
-                    const flowData = JSON.parse(v.messages[0].interactive.nfm_reply.response_json);
-                    const clinicId = await resolveClinicId({ channel: 'whatsapp', externalId: phone_number_id, hostname: req.headers.host?.split(':')[0] });
-                    if (clinicId) {
-                        const access = await checkAccess(clinicId, 'whatsapp');
-                        if (access.allowed) {
-                            const r = await bookWithLock({
-                                clinic_id: clinicId, patient_phone: from,
-                                patient_name: flowData.patient_name,
-                                date: flowData.date, time: flowData.time,
-                                source: 'whatsapp_flow', service: flowData.service
-                            });
-                            const ctx = access.context;
-                            if (r.ok) {
-                                await sendToChannel(ctx, 'whatsapp', from, `✅ تم الحجز\n📅 ${flowData.date} ⏰ ${flowData.time}`);
-                            } else {
-                                await sendToChannel(ctx, 'whatsapp', from, `⚠️ ${r.error}`);
-                            }
-                        }
-                    }
-                } catch (e) { console.error('[FLOW]', e.message); }
-                return res.sendStatus(200);
-            }
-
-            const clinicId = await resolveClinicId({
-                channel: 'whatsapp', externalId: phone_number_id,
-                hostname: req.headers.host?.split(':')[0],
-                headerClinicId: req.headers['x-clinic-id']
-            });
-            if (!clinicId) {
-                console.error(`[WH] No clinic for wa phone_id=${phone_number_id}`);
-                return res.sendStatus(200);
-            }
-            await handleIncoming({ clinicId, channel: 'whatsapp', from, text, phoneNumberId: phone_number_id });
-            return res.sendStatus(200);
-        }
-
-        if (entry.messaging?.[0]) {
-            const m = entry.messaging[0];
-            if (m.message?.text) {
-                const clinicId = await resolveClinicId({
-                    channel: 'instagram', externalId: m.recipient.id,
-                    hostname: req.headers.host?.split(':')[0],
-                    headerClinicId: req.headers['x-clinic-id']
-                });
-                if (!clinicId) {
-                    console.error(`[WH] No clinic for ig recipient=${m.recipient.id}`);
-                    return res.sendStatus(200);
-                }
-                await handleIncoming({ clinicId, channel: 'instagram', from: m.sender.id, text: m.message.text });
-            }
-            return res.sendStatus(200);
-        }
-        res.sendStatus(200);
-    } catch (e) {
-        console.error('[WEBHOOK]', e);
-        res.sendStatus(200);
+  try {
+    if (META_APP_SECRET) {
+      const sig = req.headers['x-hub-signature-256'] || '';
+      const expected = 'sha256=' + crypto.createHmac('sha256', META_APP_SECRET).update(req.body).digest('hex');
+      if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+        return res.sendStatus(403);
+      }
     }
+    const body = JSON.parse(req.body.toString('utf8'));
+    const entry = body.entry?.[0];
+    if (!entry) return res.sendStatus(200);
+
+    if (entry.changes?.[0]?.value?.messages) {
+      const v = entry.changes[0].value;
+      const phone_number_id = v.metadata.phone_number_id;
+      const from = v.messages[0].from;
+      const text = v.messages[0].text?.body || '';
+
+      // WhatsApp Flow reply
+      if (v.messages[0].type === 'interactive' && v.messages[0].interactive?.type === 'nfm_reply') {
+        try {
+          const flowData = JSON.parse(v.messages[0].interactive.nfm_reply.response_json);
+          const clinicId = await resolveClinicId({ channel: 'whatsapp', externalId: phone_number_id, hostname: req.headers.host?.split(':')[0] });
+          if (clinicId) {
+            const access = await checkAccess(clinicId, 'whatsapp');
+            if (access.allowed) {
+              const r = await bookWithLock({
+                clinic_id: clinicId, patient_phone: from,
+                patient_name: flowData.patient_name,
+                date: flowData.date, time: flowData.time,
+                source: 'whatsapp_flow', service: flowData.service
+              });
+              const ctx = access.context;
+              if (r.ok) {
+                await sendToChannel(ctx, 'whatsapp', from, `✅ تم الحجز\n📅 ${flowData.date} ⏰ ${flowData.time}`);
+              } else {
+                await sendToChannel(ctx, 'whatsapp', from, `⚠️ ${r.error}`);
+              }
+            }
+          }
+        } catch (e) { console.error('[FLOW]', e.message); }
+        return res.sendStatus(200);
+      }
+
+      const clinicId = await resolveClinicId({
+        channel: 'whatsapp', externalId: phone_number_id,
+        hostname: req.headers.host?.split(':')[0],
+        headerClinicId: req.headers['x-clinic-id']
+      });
+      if (!clinicId) {
+        console.error(`[WH] No clinic for wa phone_id=${phone_number_id}`);
+        return res.sendStatus(200);
+      }
+      await handleIncoming({ clinicId, channel: 'whatsapp', from, text, phoneNumberId: phone_number_id });
+      return res.sendStatus(200);
+    }
+
+    if (entry.messaging?.[0]) {
+      const m = entry.messaging[0];
+      if (m.message?.text) {
+        const clinicId = await resolveClinicId({
+          channel: 'instagram', externalId: m.recipient.id,
+          hostname: req.headers.host?.split(':')[0],
+          headerClinicId: req.headers['x-clinic-id']
+        });
+        if (!clinicId) {
+          console.error(`[WH] No clinic for ig recipient=${m.recipient.id}`);
+          return res.sendStatus(200);
+        }
+        await handleIncoming({ clinicId, channel: 'instagram', from: m.sender.id, text: m.message.text });
+      }
+      return res.sendStatus(200);
+    }
+    res.sendStatus(200);
+  } catch (e) {
+    console.error('[WEBHOOK]', e);
+    res.sendStatus(200);
+  }
 });
 
 app.get('/webhook', (req, res) => {
-    if (req.query['hub.verify_token'] === VERIFY_TOKEN) return res.send(req.query['hub.challenge']);
-    res.sendStatus(403);
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) return res.send(req.query['hub.challenge']);
+  res.sendStatus(403);
 });
 
+// ============================================
+// Middleware
+// ============================================
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ============================================
+// Health check
+// ============================================
 app.get('/health', async (req, res) => {
-    try {
-        await pool.query('SELECT 1');
-        res.json({ ok: true, mode: TENANCY_MODE, clinic: isSingle() ? getStaticClinicId() : 'multi', version: '3.2' });
-    } catch (e) {
-        res.status(500).json({ ok: false, error: e.message });
-    }
+  try {
+    await pool.query('SELECT 1');
+    res.json({
+      ok: true,
+      mode: TENANCY_MODE,
+      clinic: isSingle() ? getStaticClinicId() : 'multi',
+      version: '3.3'
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
+// ============================================
+// Reception endpoints
+// ============================================
 function requireReception(req, res, next) {
-    if (req.headers['x-reception-token'] !== RECEPTION_TOKEN) return res.status(401).json({ error: 'unauthorized' });
-    next();
+  if (req.headers['x-reception-token'] !== RECEPTION_TOKEN) return res.status(401).json({ error: 'unauthorized' });
+  next();
 }
 
 async function resolveReqClinic(req) {
-    return resolveClinicId({
-        hostname: req.headers.host?.split(':')[0],
-        headerClinicId: req.headers['x-clinic-id'] || req.query.clinic
-    });
+  return resolveClinicId({
+    hostname: req.headers.host?.split(':')[0],
+    headerClinicId: req.headers['x-clinic-id'] || req.query.clinic
+  });
 }
 
 app.post('/api/reception/book', requireReception, requireActiveSubscription('reception'), async (req, res) => {
-    const clinicId = await resolveReqClinic(req);
-    if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
-    const { patient_name, patient_phone, date, time, service } = req.body;
-    if (!patient_name || !patient_phone || !date || !time) return res.status(400).json({ error: 'missing fields' });
-    const r = await bookWithLock({ clinic_id: clinicId, patient_name, patient_phone, date, time, source: 'reception', service: service || 'عام' });
-    if (r.ok) return res.json({ success: true, booking: r.booking });
-    res.status(409).json({ success: false, error: r.error });
+  const clinicId = await resolveReqClinic(req);
+  if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
+  const { patient_name, patient_phone, date, time, service } = req.body;
+  if (!patient_name || !patient_phone || !date || !time) return res.status(400).json({ error: 'missing fields' });
+  const r = await bookWithLock({ clinic_id: clinicId, patient_name, patient_phone, date, time, source: 'reception', service: service || 'عام' });
+  if (r.ok) return res.json({ success: true, booking: r.booking });
+  res.status(409).json({ success: false, error: r.error });
 });
 
 app.get('/api/reception/today', requireReception, requireActiveSubscription('reception'), async (req, res) => {
-    const clinicId = await resolveReqClinic(req);
-    if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
-    const r = await pool.query(
-        `SELECT id, patient_name, patient_phone, time, service, status FROM bookings
-     WHERE clinic_id=$1 AND date=CURRENT_DATE ORDER BY time`, [clinicId]);
-    res.json(r.rows);
+  const clinicId = await resolveReqClinic(req);
+  if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
+  const r = await pool.query(
+    `SELECT id, patient_name, patient_phone, time, service, status FROM bookings
+         WHERE clinic_id=$1 AND date=CURRENT_DATE ORDER BY time`, [clinicId]);
+  res.json(r.rows);
 });
 
+// ============================================
+// QR endpoint
+// ============================================
 app.get('/api/qr', async (req, res) => {
-    const clinicId = await resolveReqClinic(req);
-    if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
-    const c = await pool.query('SELECT wa_number FROM clinics WHERE id=$1', [clinicId]);
-    const num = (c.rows[0]?.wa_number || '').replace(/\D/g, '');
-    res.json({ qr_text: `https://wa.me/${num}?text=${encodeURIComponent('بدي احجز')}`, clinic_id: clinicId });
+  const clinicId = await resolveReqClinic(req);
+  if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
+  const c = await pool.query('SELECT wa_number FROM clinics WHERE id=$1', [clinicId]);
+  const num = (c.rows[0]?.wa_number || '').replace(/\D/g, '');
+  res.json({ qr_text: `https://wa.me/${num}?text=${encodeURIComponent('بدي احجز')}`, clinic_id: clinicId });
 });
 
+// ============================================
+// Deposit endpoints
+// ============================================
 app.post('/api/pay/deposit', requireActiveSubscription('deposit'), async (req, res) => {
-    const clinicId = await resolveReqClinic(req);
-    if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
-    const { booking_id, amount } = req.body;
-    const b = await pool.query('SELECT * FROM bookings WHERE id=$1 AND clinic_id=$2', [booking_id, clinicId]);
-    if (!b.rows[0]) return res.status(404).json({ error: 'not found' });
-    const ctx = await getClinicContext(clinicId);
-    try {
-        const payUrl = await createDepositInvoice({
-            clinicId, bookingId: booking_id,
-            amount: amount || ctx.deposit.amount_sar,
-            moyasarKey: ctx.deposit.moyasar_key,
-            callbackUrl: `${PUBLIC_URL}/api/pay/callback`
-        });
-        res.json({ payment_url: payUrl });
-    } catch (e) {
-        res.status(500).json({ error: 'payment init failed' });
-    }
+  const clinicId = await resolveReqClinic(req);
+  if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
+  const { booking_id, amount } = req.body;
+  const b = await pool.query('SELECT * FROM bookings WHERE id=$1 AND clinic_id=$2', [booking_id, clinicId]);
+  if (!b.rows[0]) return res.status(404).json({ error: 'not found' });
+  const ctx = await getClinicContext(clinicId);
+  try {
+    const payUrl = await createDepositInvoice({
+      clinicId, bookingId: booking_id,
+      amount: amount || ctx.deposit.amount_sar,
+      moyasarKey: ctx.deposit.moyasar_key,
+      callbackUrl: `${PUBLIC_URL}/api/pay/callback`
+    });
+    res.json({ payment_url: payUrl });
+  } catch (e) {
+    res.status(500).json({ error: 'payment init failed' });
+  }
 });
 
 app.get('/api/pay/callback', async (req, res) => {
-    const { booking_id, clinic_id } = req.query;
-    if (!booking_id || !clinic_id) return res.send('missing params');
+  const { booking_id, clinic_id } = req.query;
+  if (!booking_id || !clinic_id) return res.send('missing params');
 
-    try {
-        const ctx = await getClinicContext(clinic_id);
-        const p = await pool.query('SELECT moyasar_id FROM payments WHERE booking_id=$1 AND clinic_id=$2 ORDER BY id DESC LIMIT 1', [booking_id, clinic_id]);
-        if (p.rows[0] && ctx.deposit.moyasar_key) {
-            const verify = await axios.get(`https://api.moyasar.com/v1/invoices/${p.rows[0].moyasar_id}`, {
-                auth: { username: ctx.deposit.moyasar_key, password: '' }
-            });
-            if (verify.data.status === 'paid') {
-                await pool.query("UPDATE bookings SET deposit_paid=TRUE, status='confirmed' WHERE id=$1 AND clinic_id=$2", [booking_id, clinic_id]);
-                await pool.query("UPDATE payments SET status='paid', paid_at=NOW() WHERE booking_id=$1 AND clinic_id=$2", [booking_id, clinic_id]);
-                const queue = getWhatsappQueue();
-                if (queue) await queue.remove(`exp-${booking_id}`).catch(() => { });
-                const b = await pool.query('SELECT * FROM bookings WHERE id=$1', [booking_id]);
-                if (b.rows[0]) {
-                    await sendToChannel(ctx, 'whatsapp', b.rows[0].patient_phone,
-                        `✅ تم استلام العربون. حجزك مؤكد.\n📅 ${b.rows[0].date} ⏰ ${b.rows[0].time}`);
-                }
-                return res.send('✅ تم الدفع بنجاح. حجزك مؤكد.');
-            }
+  try {
+    const ctx = await getClinicContext(clinic_id);
+    const p = await pool.query('SELECT moyasar_id FROM payments WHERE booking_id=$1 AND clinic_id=$2 ORDER BY id DESC LIMIT 1', [booking_id, clinic_id]);
+    if (p.rows[0] && ctx.deposit.moyasar_key) {
+      const verify = await axios.get(`https://api.moyasar.com/v1/invoices/${p.rows[0].moyasar_id}`, {
+        auth: { username: ctx.deposit.moyasar_key, password: '' }
+      });
+      if (verify.data.status === 'paid') {
+        await pool.query("UPDATE bookings SET deposit_paid=TRUE, status='confirmed' WHERE id=$1 AND clinic_id=$2", [booking_id, clinic_id]);
+        await pool.query("UPDATE payments SET status='paid', paid_at=NOW() WHERE booking_id=$1 AND clinic_id=$2", [booking_id, clinic_id]);
+        const queue = getWhatsappQueue();
+        if (queue) await queue.remove(`exp-${booking_id}`).catch(() => { });
+        const b = await pool.query('SELECT * FROM bookings WHERE id=$1', [booking_id]);
+        if (b.rows[0]) {
+          await sendToChannel(ctx, 'whatsapp', b.rows[0].patient_phone,
+            `✅ تم استلام العربون. حجزك مؤكد.\n📅 ${b.rows[0].date} ⏰ ${b.rows[0].time}`);
         }
-    } catch (e) { console.error('[CALLBACK]', e.message); }
-    res.send('جاري التحقق من الدفع...');
+        return res.send('✅ تم الدفع بنجاح. حجزك مؤكد.');
+      }
+    }
+  } catch (e) { console.error('[CALLBACK]', e.message); }
+  res.send('جاري التحقق من الدفع...');
 });
 
+// ============================================
+// Central stats
+// ============================================
 app.get('/api/central/stats', async (req, res) => {
-    try {
-        const clinicId = await resolveReqClinic(req);
-        if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
-        const [today, total, wa, ig] = await Promise.all([
-            pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1 AND date=CURRENT_DATE`, [clinicId]),
-            pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1`, [clinicId]),
-            pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1 AND source='whatsapp'`, [clinicId]),
-            pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1 AND source='instagram'`, [clinicId])
-        ]);
-        res.json({
-            clinic_id: clinicId,
-            bookings_today: parseInt(today.rows[0].c),
-            bookings_total: parseInt(total.rows[0].c),
-            whatsapp: parseInt(wa.rows[0].c),
-            instagram: parseInt(ig.rows[0].c)
-        });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const clinicId = await resolveReqClinic(req);
+    if (!clinicId) return res.status(400).json({ error: 'clinic not resolved' });
+    const [today, total, wa, ig] = await Promise.all([
+      pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1 AND date=CURRENT_DATE`, [clinicId]),
+      pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1`, [clinicId]),
+      pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1 AND source='whatsapp'`, [clinicId]),
+      pool.query(`SELECT COUNT(*) c FROM bookings WHERE clinic_id=$1 AND source='instagram'`, [clinicId])
+    ]);
+    res.json({
+      clinic_id: clinicId,
+      bookings_today: parseInt(today.rows[0].c),
+      bookings_total: parseInt(total.rows[0].c),
+      whatsapp: parseInt(wa.rows[0].c),
+      instagram: parseInt(ig.rows[0].c)
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ============================================
+// Admin: invalidate cache
+// ============================================
 app.post('/api/admin/invalidate-cache', (req, res) => {
-    if (req.headers['x-admin-token'] !== process.env.ADMIN_TOKEN) return res.status(401).json({ error: 'unauthorized' });
-    const { clinic_id } = req.body || {};
-    invalidateCache(clinic_id);
-    res.json({ ok: true });
+  if (req.headers['x-admin-token'] !== process.env.ADMIN_TOKEN) return res.status(401).json({ error: 'unauthorized' });
+  const { clinic_id } = req.body || {};
+  invalidateCache(clinic_id);
+  res.json({ ok: true });
 });
 
+// ============================================
+// CRON: 3h Reminder
+// ============================================
+// ============================================
+// CRON: 3h Reminder - مع Template معتمد
+// ============================================
 cron.schedule('*/10 * * * *', async () => {
-    try {
-        const r = await pool.query(`
-      SELECT * FROM bookings
-      WHERE date=CURRENT_DATE AND status='confirmed' AND reminder_sent=FALSE
-        AND (date + time) BETWEEN (NOW() + INTERVAL '2 hours 50 minutes') AND (NOW() + INTERVAL '3 hours 10 minutes')
-    `);
-        for (const b of r.rows) {
-            const ctx = await getClinicContext(b.clinic_id);
-            if (!ctx || ctx.features.reminder_3h === false) continue;
-            await sendToChannel(ctx, 'whatsapp', b.patient_phone, `تذكير: موعدك اليوم الساعة ${b.time}.`, {
-                template: {
-                    name: 'appointment_reminder_3h', language: { code: 'ar' },
-                    components: [{ type: 'body', parameters: [{ type: 'text', text: b.time }] }]
-                }
-            });
-            await pool.query('UPDATE bookings SET reminder_sent=TRUE WHERE id=$1', [b.id]);
+  try {
+    const r = await pool.query(`
+            SELECT b.*, c.name AS clinic_name, cp.address AS clinic_address
+            FROM bookings b
+            LEFT JOIN clinics c ON c.id = b.clinic_id
+            LEFT JOIN clinic_profile cp ON cp.clinic_id = b.clinic_id
+            WHERE b.date=CURRENT_DATE AND b.status='confirmed' AND b.reminder_sent=FALSE
+              AND (b.date + b.time) BETWEEN (NOW() + INTERVAL '2 hours 50 minutes') AND (NOW() + INTERVAL '3 hours 10 minutes')
+        `);
+
+    for (const b of r.rows) {
+      const ctx = await getClinicContext(b.clinic_id);
+      if (!ctx || ctx.features.reminder_3h === false) continue;
+
+      const params = [
+        b.patient_name || 'المريض',
+        b.clinic_name || 'العيادة',
+        b.date.toISOString().slice(0, 10),
+        String(b.time).slice(0, 5),
+        b.clinic_address || 'موقع العيادة'
+      ];
+
+      await sendToChannel(ctx, 'whatsapp', b.patient_phone, null, {
+        template: {
+          name: 'appointment_reminder_3h',
+          language: { code: 'ar' },
+          components: [{
+            type: 'body',
+            parameters: params.map(p => ({ type: 'text', text: String(p) }))
+          }]
         }
-    } catch (e) { console.error('[REMINDER]', e.message); }
+      });
+
+      await pool.query('UPDATE bookings SET reminder_sent=TRUE WHERE id=$1', [b.id]);
+      console.log(`[REMINDER] Sent to ${b.patient_phone} (booking #${b.id})`);
+    }
+  } catch (e) {
+    console.error('[REMINDER]', e.message);
+  }
 });
 
+// رسالة نصية بدون template (تعمل خلال نافذة 24 ساعة فقط)
+await sendToChannel(ctx, 'whatsapp', b.patient_phone,
+  `🔔 تذكير: موعدك اليوم الساعة ${String(b.time).slice(0, 5)}.`);
+// ============================================
+// CRON: No-show
+// ============================================
 cron.schedule('0 * * * *', async () => {
-    try {
-        await pool.query(`
-      UPDATE bookings SET status='no_show', updated_at=NOW()
-      WHERE date=CURRENT_DATE AND status IN ('pending','confirmed')
-        AND (date + time) < (NOW() - INTERVAL '2 hours')
-    `);
-    } catch (e) { console.error('[NOSHOW]', e.message); }
+  try {
+    await pool.query(`
+            UPDATE bookings SET status='no_show', updated_at=NOW()
+            WHERE date=CURRENT_DATE AND status IN ('pending','confirmed')
+              AND (date + time) < (NOW() - INTERVAL '2 hours')
+        `);
+  } catch (e) { console.error('[NOSHOW]', e.message); }
 });
 
+// ============================================
+// CRON: Subscription expiry
+// ============================================
 cron.schedule('0 * * * *', async () => {
-    try {
-        const r = await pool.query(`
-      UPDATE clinic_subscriptions
-      SET status='expired', updated_at=NOW()
-      WHERE status='active' AND ends_at <= NOW()
-      RETURNING clinic_id
-    `);
-        if (r.rowCount > 0) {
-            console.log(`[SUBS] Expired: ${r.rows.map(x => x.clinic_id).join(', ')}`);
-            r.rows.forEach(x => invalidateCache(x.clinic_id));
-        }
-    } catch (e) { console.error('[SUBS CRON]', e.message); }
+  try {
+    const r = await pool.query(`
+            UPDATE clinic_subscriptions
+            SET status='expired', updated_at=NOW()
+            WHERE status='active' AND ends_at <= NOW()
+            RETURNING clinic_id
+        `);
+    if (r.rowCount > 0) {
+      console.log(`[SUBS] Expired: ${r.rows.map(x => x.clinic_id).join(', ')}`);
+      r.rows.forEach(x => invalidateCache(x.clinic_id));
+    }
+  } catch (e) { console.error('[SUBS CRON]', e.message); }
 });
 
+// ============================================
+// CRON: Instagram token refresh
+// ============================================
 cron.schedule('0 3 * * *', async () => {
-    try {
-        const rows = isSingle()
-            ? (process.env.INSTAGRAM_TOKEN ? [{ access_token: process.env.INSTAGRAM_TOKEN, external_id: process.env.INSTAGRAM_ID }] : [])
-            : (await pool.query(`SELECT access_token, external_id FROM channel_identities WHERE channel='instagram'`)).rows;
-        for (const c of rows) {
-            if (!c.access_token) continue;
-            try {
-                const r = await axios.get(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${c.access_token}`);
-                if (isMulti()) {
-                    await pool.query(`UPDATE channel_identities SET access_token=$1 WHERE channel='instagram' AND external_id=$2`, [r.data.access_token, c.external_id]);
-                }
-                console.log(`[IG REFRESH] ${c.external_id} ok`);
-            } catch (e) { console.error(`[IG REFRESH] ${c.external_id}`, e.response?.data || e.message); }
+  try {
+    const rows = isSingle()
+      ? (process.env.INSTAGRAM_TOKEN ? [{ access_token: process.env.INSTAGRAM_TOKEN, external_id: process.env.INSTAGRAM_ID }] : [])
+      : (await pool.query(`SELECT access_token, external_id FROM channel_identities WHERE channel='instagram'`)).rows;
+    for (const c of rows) {
+      if (!c.access_token) continue;
+      try {
+        const r = await axios.get(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${c.access_token}`);
+        if (isMulti()) {
+          await pool.query(`UPDATE channel_identities SET access_token=$1 WHERE channel='instagram' AND external_id=$2`, [r.data.access_token, c.external_id]);
         }
-    } catch (e) { console.error('[IG CRON]', e.message); }
+        console.log(`[IG REFRESH] ${c.external_id} ok`);
+      } catch (e) { console.error(`[IG REFRESH] ${c.external_id}`, e.response?.data || e.message); }
+    }
+  } catch (e) { console.error('[IG CRON]', e.message); }
 });
 
+// ============================================
+// CRON: PDPL Retention (حذف بعد سنتين)
+// ============================================
 cron.schedule('0 4 * * *', async () => {
-    try {
-        await pool.query(`DELETE FROM consents WHERE expires_at < NOW()`);
-        await pool.query(`DELETE FROM bookings WHERE created_at < NOW() - INTERVAL '2 years'`);
-    } catch (e) { console.error('[RETENTION]', e.message); }
+  try {
+    await pool.query(`DELETE FROM consents WHERE expires_at < NOW()`);
+    await pool.query(`DELETE FROM bookings WHERE created_at < NOW() - INTERVAL '2 years'`);
+  } catch (e) { console.error('[RETENTION]', e.message); }
 });
 
-const server = app.listen(3000, () => console.log(`[READY] Bot v3.2 mode=${TENANCY_MODE} on :3000`));
+// ============================================
+// Start Server
+// ============================================
+const server = app.listen(3000, () => console.log(`[READY] Bot v3.3 mode=${TENANCY_MODE} on :3000`));
 
 async function shutdown() {
-    console.log('Shutting down...');
-    server.close();
-    await closeQueue();
-    try { await stateConn?.quit(); } catch { }
-    try { await pool.end(); } catch { }
-    process.exit(0);
+  console.log('Shutting down...');
+  server.close();
+  await closeQueue();
+  try { await stateConn?.quit(); } catch { }
+  try { await pool.end(); } catch { }
+  process.exit(0);
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);

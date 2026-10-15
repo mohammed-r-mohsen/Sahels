@@ -1,7 +1,9 @@
 {
     "name": "sahels-bot",
-    "version": "3.2.0",
+    "version": "3.3.0",
+    "type": "commonjs",
     "main": "Server_2.js",
+    
     "scripts": {
         "start": "node Server_2.js",
         "dev": "node --watch Server_2.js"
