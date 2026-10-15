@@ -273,3 +273,47 @@ AFTER
 INSERT
     OR
 UPDATE OF status ON bookings FOR EACH ROW EXECUTE FUNCTION update_patient_features();
+
+-- ============================================
+-- ترحيل v3.3 (أضفه في نهاية init.sql)
+-- ============================================
+
+-- 15. ملف تعريف العيادة (يقرأه المساعد الذكي)
+CREATE TABLE IF NOT EXISTS clinic_profile (
+    clinic_id TEXT PRIMARY KEY REFERENCES clinics(id) ON DELETE CASCADE,
+    working_hours TEXT,
+    services TEXT [],
+    address TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- إصلاح trigger ميزات المريض: العدّ عند الإدخال فقط،
+-- وعند تغيّر الحالة نزيد عدّاد الإلغاء/الغياب فقط
+CREATE OR REPLACE FUNCTION update_patient_features() RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO patient_features (
+            clinic_id, patient_phone, total_bookings,
+            total_cancelled, total_no_show, last_booking_at
+        ) VALUES (
+            NEW.clinic_id, NEW.patient_phone, 1,
+            CASE WHEN NEW.status = 'cancelled' THEN 1 ELSE 0 END,
+            CASE WHEN NEW.status = 'no_show' THEN 1 ELSE 0 END,
+            NOW()
+        ) ON CONFLICT (clinic_id, patient_phone) DO UPDATE SET
+            total_bookings = patient_features.total_bookings + 1,
+            total_cancelled = patient_features.total_cancelled + CASE WHEN NEW.status = 'cancelled' THEN 1 ELSE 0 END,
+            total_no_show = patient_features.total_no_show + CASE WHEN NEW.status = 'no_show' THEN 1 ELSE 0 END,
+            last_booking_at = NOW(),
+            updated_at = NOW();
+    ELSIF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
+        UPDATE patient_features SET
+            total_cancelled = total_cancelled + CASE WHEN NEW.status = 'cancelled' THEN 1 ELSE 0 END,
+            total_no_show = total_no_show + CASE WHEN NEW.status = 'no_show' THEN 1 ELSE 0 END,
+            updated_at = NOW()
+        WHERE clinic_id = NEW.clinic_id AND patient_phone = NEW.patient_phone;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- الـ trigger نفسه (AFTER INSERT OR UPDATE OF status) لا يحتاج تغييراً

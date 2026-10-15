@@ -89,7 +89,8 @@ async function bookWithLock({ clinic_id, patient_phone, patient_name, date, time
 // ============================================
 const { chatWithAI, TOOLS, clearHistory } = require('./lib/ai');
 const { detectSensitivity } = require('./lib/sensitive');
-
+const { createToolExecutor } = require('./lib/ai-tools');
+const executeTool = createToolExecutor({ pool, bookWithLock });
 async function handleIncoming({ clinicId, channel, from, text, phoneNumberId }) {
   const access = await checkAccess(clinicId, channel);
   if (!access.allowed) {
