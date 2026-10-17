@@ -414,12 +414,12 @@ app.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), as
 });
 
 app.get('/webhook', (req, res) => {
-    if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
-        // تحويل القيمة إلى رقم صحيح (Integer) كما تتطلب Meta
-        const challenge = parseInt(req.query['hub.challenge'], 10);
-        return res.type('text/plain').send(challenge.toString());
-    }
-    res.sendStatus(403);
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
+    // تحويل القيمة إلى رقم صحيح (Integer) كما تتطلب Meta
+    const challenge = parseInt(req.query['hub.challenge'], 10);
+    return res.type('text/plain').send(challenge.toString());
+  }
+  res.sendStatus(403);
 });
 
 // ============================================
