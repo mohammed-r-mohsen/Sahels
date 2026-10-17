@@ -414,11 +414,11 @@ app.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), as
 });
 
 app.get('/webhook', (req, res) => {
-    if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
-        // إجبار Meta على استلام النص كـ Plain Text لتجنب خطأ التحقق
-        return res.type('text/plain').send(req.query['hub.challenge']);
-    }
-    res.sendStatus(403);
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
+    // إجبار Meta على استلام النص كـ Plain Text لتجنب خطأ التحقق
+    return res.type('text/plain').send(req.query['hub.challenge']);
+  }
+  res.sendStatus(403);
 });
 
 // ============================================
@@ -682,7 +682,20 @@ cron.schedule('0 4 * * *', async () => {
     await pool.query(`DELETE FROM bookings WHERE created_at < NOW() - INTERVAL '2 years'`);
   } catch (e) { console.error('[RETENTION]', e.message); }
 });
+// ============================================
+// صفحات مؤقتة لمتطلبات Meta (سيتم تطويرها لاحقاً)
+// ============================================
+app.get('/privacy', (req, res) => {
+  res.send('<h1>سياسة الخصوصية</h1><p>نحن نحترم خصوصيتك. سيتم تحديث هذه الصفحة قريباً.</p>');
+});
 
+app.get('/terms', (req, res) => {
+  res.send('<h1>شروط الخدمة</h1><p>سيتم تحديث هذه الصفحة قريباً.</p>');
+});
+
+app.get('/data-deletion', (req, res) => {
+  res.send('<h1>حذف البيانات</h1><p>لحذف بياناتك، يرجى إرسال كلمة "حذف بياناتي" للبوت في واتساب.</p>');
+});
 // ============================================
 // Start Server
 // ============================================
