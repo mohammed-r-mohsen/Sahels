@@ -39,7 +39,7 @@ services:
       DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD}@postgres:5432/sahels
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       TZ: Asia/Riyadh
-    ports: ["3000:3000"]
+    ports: ["127.0.0.1:3000:3000"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     deploy:
@@ -56,7 +56,7 @@ services:
     environment:
       DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD}@postgres:5432/sahels
       TZ: Asia/Riyadh
-    ports: ["4000:4000"]
+    ports: ["127.0.0.1:4000:4000"]
 
   agent:
     build: ./agent
@@ -75,7 +75,7 @@ services:
       postgres: { condition: service_healthy }
     environment:
       NC_DB: pg://postgres:5432?u=sahels&p=${POSTGRES_PASSWORD}&d=sahels
-    ports: ["8080:8080"]
+    ports: ["127.0.0.1:8080:8080"]
     volumes:
       - nocodbdata:/usr/app/data
 
