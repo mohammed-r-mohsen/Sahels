@@ -414,8 +414,11 @@ app.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), as
 });
 
 app.get('/webhook', (req, res) => {
-  if (req.query['hub.verify_token'] === VERIFY_TOKEN) return res.send(req.query['hub.challenge']);
-  res.sendStatus(403);
+    if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
+        // إجبار Meta على استلام النص كـ Plain Text لتجنب خطأ التحقق
+        return res.type('text/plain').send(req.query['hub.challenge']);
+    }
+    res.sendStatus(403);
 });
 
 // ============================================
