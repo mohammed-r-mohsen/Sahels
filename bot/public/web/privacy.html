@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سياسة الخصوصية | ساهل</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --saudi-green: #006C35; --gold: #D4AF37; --sand: #F9F6F0; --dark: #1A1A1A; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--sand); color: var(--dark); overflow-x: hidden; display: flex; flex-direction: column; min-height: 100vh; }
+        .bg-animation { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; background-image: radial-gradient(var(--gold) 1px, transparent 1px), radial-gradient(var(--saudi-green) 1px, transparent 1px); background-size: 50px 50px; background-position: 0 0, 25px 25px; opacity: 0.07; animation: moveBg 60s linear infinite; }
+        @keyframes moveBg { from { background-position: 0 0, 25px 25px; } to { background-position: 500px 500px, 525px 525px; } }
+
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; background: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 28px; font-weight: 800; color: var(--saudi-green); display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--gold); }
+        .nav-links a { text-decoration: none; color: var(--dark); font-weight: 700; margin-right: 30px; transition: 0.3s; }
+        .nav-links a:hover { color: var(--saudi-green); }
+
+        .content-container { max-width: 900px; margin: 60px auto; padding: 50px 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 10; }
+        h1 { color: var(--saudi-green); font-size: 2.5rem; margin-bottom: 30px; text-align: center; border-bottom: 2px solid var(--sand); padding-bottom: 20px; }
+        h2 { color: var(--saudi-green); font-size: 1.5rem; margin-top: 30px; margin-bottom: 15px; }
+        p, li { font-size: 1.1rem; line-height: 1.9; color: #444; margin-bottom: 15px; text-align: justify; }
+        ul { margin-right: 25px; margin-bottom: 20px; }
+
+        footer { background: var(--dark); color: white; padding: 40px 5%; text-align: center; margin-top: auto; }
+        .footer-links { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .footer-links a { color: #aaa; text-decoration: none; font-size: 0.95rem; transition: 0.3s; }
+        .footer-links a:hover { color: var(--gold); }
+        .footer-note { font-size: 0.85rem; color: #777; margin-top: 20px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <nav>
+        <div class="logo">ساهل <span>| Sahels</span></div>
+        <div class="nav-links">
+            <a href="/web/index.html">الرئيسية</a>
+            <a href="/web/about.html">من نحن</a>
+            <a href="/web/contact.html">تواصل معنا</a>
+        </div>
+    </nav>
+
+    <div class="content-container">
+        <h1>سياسة الخصوصية</h1>
+        <p>نحن في <strong>شركة ساهل للحلول التقنية</strong> نولي أهمية قصوى لخصوصية بياناتك وبيانات مرضاك. تم إعداد هذه السياسة لتوضيح كيفية جمع واستخدام وحماية المعلومات، بما يتوافق تماماً مع <strong>نظام حماية البيانات الشخصية (PDPL)</strong> في المملكة العربية السعودية.</p>
+
+        <h2>1. البيانات التي نجمعها</h2>
+        <p>نقوم بجمع البيانات الضرورية لتقديم الخدمة، والتي تشمل: الاسم، رقم الجوال، وتاريخ الحجز. لا نقوم بجمع أي بيانات طبية تفصيلية (مثل التشخيص أو الأشعة) داخل أنظمة البوت.</p>
+
+        <h2>2. الغرض من جمع البيانات</h2>
+        <p>تُستخدم البيانات حصرياً لإدارة حجوزات المرضى، وإرسال التذكيرات، وتحسين جودة الخدمة داخل العيادة. لا يتم استخدامها لأي أغراض تسويقية خارجية دون موافقة صريحة.</p>
+
+        <h2>3. توطين البيانات (Data Localization)</h2>
+        <p>التزاماً بالأنظمة السعودية، يتم استضافة ومعالجة وتخزين جميع البيانات داخل <strong>مراكز بيانات في المملكة العربية السعودية</strong>. لا يتم نقل أي بيانات خارج المملكة.</p>
+
+        <h2>4. حماية البيانات</h2>
+        <p>نستخدم تشفيراً متقدماً (AES-256) لتخزين البيانات، وتشفيراً أثناء النقل (TLS 1.3). كما نطبق سياسات صارمة للوصول إلى البيانات لضمان عدم اطلاع أي شخص غير مصرح له عليها.</p>
+
+        <h2>5. حقوقك</h2>
+        <p>وفقاً لنظام PDPL، يحق لك الوصول إلى بياناتك، تصحيحها، أو طلب حذفها بالكامل في أي وقت. يمكنك القيام بذلك عبر التواصل معنا أو من خلال صفحة "حذف البيانات".</p>
+    </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="web/privacy">سياسة الخصوصية</a>
+            <a href="web/terms">شروط الخدمة</a>
+            <a href="web/data-deletion">حذف البيانات</a>
+        </div>
+        <p>جميع البيانات محفوظة ومعالجة داخل المملكة العربية السعودية وفقاً لنظام حماية البيانات الشخصية (PDPL).</p>
+        <p class="footer-note">© 2026 شركة ساهل للحلول التقنية. جميع الحقوق محفوظة.</p>
+    </footer>
+</body>
+</html>

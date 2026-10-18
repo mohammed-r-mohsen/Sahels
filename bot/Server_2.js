@@ -686,17 +686,16 @@ cron.schedule('0 4 * * *', async () => {
 // ============================================
 // صفحات مؤقتة لمتطلبات Meta (سيتم تطويرها لاحقاً)
 // ============================================
-app.get('/privacy', (req, res) => {
-  res.send('<h1>سياسة الخصوصية</h1><p>نحن نحترم خصوصيتك. سيتم تحديث هذه الصفحة قريباً.</p>');
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'web', 'privacy.html')));
+app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'web', 'terms.html')));
+app.get('/data-deletion', (req, res) => res.sendFile(path.join(__dirname, 'public', 'web', 'data-deletion.html')));
+// ============================================
+// معالج الأخطاء 404 (يجب أن يكون في النهاية)
+// ============================================
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', 'web', '404.html'));
 });
 
-app.get('/terms', (req, res) => {
-  res.send('<h1>شروط الخدمة</h1><p>سيتم تحديث هذه الصفحة قريباً.</p>');
-});
-
-app.get('/data-deletion', (req, res) => {
-  res.send('<h1>حذف البيانات</h1><p>لحذف بياناتك، يرجى إرسال كلمة "حذف بياناتي" للبوت في واتساب.</p>');
-});
 // ============================================
 // Start Server
 // ============================================
