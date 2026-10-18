@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ساهل | بوابة العيادات الذكية</title>
+    <title>ساهل | عيادة أسنان متكاملة</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
-    <!-- Three.js & Vanta.js للخلفية -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <!-- Vanta.js (لسطبقة خلفية خفيفة جداً في الأقسام الداكنة) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        saudi: '#007A3D', // أخضر زمردي طبي
-                        gold: '#D4AF37',
-                        dark: '#050505',
-                        glass: 'rgba(255, 255, 255, 0.03)'
+                        saudi: '#0A5C36', // أخضر داكن فاخر
+                        gold: '#C5A059',  // ذهبي ترابي
+                        sand: '#F8F6F0',  // بيج فاتح جداً
+                        dark: '#111111',
                     },
                     fontFamily: { arabic: ['Tajawal', 'sans-serif'] }
                 }
@@ -29,205 +29,231 @@
         }
     </script>
     <style>
-        body { font-family: 'Tajawal', sans-serif; background-color: #050505; color: white; overflow-x: hidden; scroll-behavior: smooth; }
+        body { font-family: 'Tajawal', sans-serif; background-color: #F8F6F0; color: #111111; overflow-x: hidden; }
 
-        /* تأثيرات زجاجية */
-        .glass-panel {
-            background: rgba(20, 20, 20, 0.6);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+        /* تأثيرات الظهور عند التمرير */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.5, 0, 0, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
 
-        /* بوابة ثلاثية الأبعاد */
-        .door-container {
-            perspective: 1200px;
-            width: 320px;
-            height: 450px;
-            position: relative;
-            cursor: pointer;
-        }
-        .door-panel {
-            position: absolute;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(0,122,61,0.4), rgba(212,175,55,0.1));
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            backdrop-filter: blur(5px);
-            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: inset 0 0 50px rgba(0, 122, 61, 0.2);
-        }
-        .door-left { left: 0; transform-origin: left center; border-right: none; }
-        .door-right { right: 0; transform-origin: right center; border-left: none; }
+        /* تأثير Parallax للصور */
+        .parallax { background-attachment: fixed; background-position: center; background-repeat: no-repeat; background-size: cover; }
 
-        /* عند التمرير أو الضغط تنفتح البوابة */
-        .door-container:hover .door-left, .door-container.active .door-left { transform: rotateY(-105deg); }
-        .door-container:hover .door-right, .door-container.active .door-right { transform: rotateY(105deg); }
+        /* تنسيق الصور الطبية */
+        .img-arch { border-radius: 200px 200px 20px 20px; overflow: hidden; }
 
-        /* المحتوى داخل البوابة */
-        .door-inside {
-            position: absolute; inset: 0; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: -1;
-            opacity: 0; transition: opacity 0.5s ease 0.5s;
-        }
-        .door-container:hover .door-inside, .door-container.active .door-inside { opacity: 1; z-index: 0; }
-
-        /* تأثير النبض الطبي */
-        .heartbeat { animation: pulse 2s infinite; }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.7; }
-        }
-
-        /* نافذة منبثقة (Modal) */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-            display: flex; justify-content: center; align-items: center; z-index: 1000;
-            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content {
-            transform: scale(0.9); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .modal-overlay.active .modal-content { transform: scale(1); }
-
-        /* إخفاء شريط التمرير للحفاظ على المظهر السينمائي */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #050505; }
-        ::-webkit-scrollbar-thumb { background: #007A3D; border-radius: 4px; }
+        /* شريط التنقل الشفاف */
+        .nav-glass { background: rgba(248, 246, 240, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="antialiased">
-    <!-- خلفية الهالة السينمائية -->
-    <div id="vanta-bg" class="fixed inset-0 z-0"></div>
 
     <!-- شريط التنقل -->
-    <nav class="fixed w-full z-50 glass-panel border-b border-white/5 transition-all">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="text-3xl font-extrabold flex items-center gap-2 cursor-pointer">
-                <svg class="w-8 h-8 text-saudi heartbeat" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                <span class="text-saudi">ساهل</span> <span class="text-white text-xl">| Sahels</span>
+    <nav class="fixed w-full z-50 nav-glass transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+            <div class="text-3xl font-extrabold flex items-center gap-3 text-saudi">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                ساهل
             </div>
-            <div class="hidden md:flex space-x-8 space-x-reverse font-bold text-gray-300">
-                <a href="about.html" class="hover:text-gold transition">من نحن</a>
-                <a href="contact.html" class="hover:text-gold transition">تواصل معنا</a>
-                <button onclick="toggleModal()" class="bg-saudi/20 text-saudi px-6 py-2 rounded-full border border-saudi/50 hover:bg-saudi hover:text-white transition">استفسار سريع</button>
+            <div class="hidden md:flex space-x-10 space-x-reverse font-bold text-gray-600">
+                <a href="#about" class="hover:text-saudi transition">قصتنا</a>
+                <a href="#services" class="hover:text-saudi transition">خدماتنا</a>
+                <a href="#team" class="hover:text-saudi transition">فريقنا</a>
+                <a href="#booking" class="bg-saudi text-white px-6 py-2 rounded-full hover:bg-green-900 transition shadow-lg shadow-saudi/30">احجز موعدك</a>
             </div>
         </div>
     </nav>
 
-    <!-- القسم الرئيسي (البوابة) -->
-    <section class="relative z-10 h-screen flex flex-col justify-center items-center text-center px-4">
-        <h1 class="text-4xl md:text-6xl font-black mb-8 leading-tight tracking-wider animate-[fadeIn_1s_ease-out]">
-            بوابة العيادة <span class="text-transparent bg-clip-text bg-gradient-to-l from-gold to-yellow-200">الذكية</span>
-        </h1>
-        <p class="text-gray-400 text-lg max-w-xl mb-12">
-            اضغط على البوابة لتكتشف كيف يمكن لساهل أن يحول عيادتك إلى تجربة رقمية متكاملة.
-        </p>
-
-        <!-- البوابة 3D -->
-        <div class="door-container" onclick="this.classList.toggle('active')">
-            <div class="door-inside">
-                <div class="bg-black/60 p-6 rounded-2xl border border-gold/30 backdrop-blur-md">
-                    <h3 class="text-2xl font-bold text-gold mb-2">مرحباً بك</h3>
-                    <p class="text-sm text-gray-300 mb-4">نظام إدارة العيادات الأحدث في السعودية.</p>
-                    <button onclick="toggleModal()" class="bg-saudi text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition w-full shadow-[0_0_15px_rgba(0,122,61,0.5)]">
-                        ادخل الآن
-                    </button>
-                </div>
-            </div>
-            <div class="door-panel door-left">
-                <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gold/30 text-4xl font-bold">|</div>
-            </div>
-            <div class="door-panel door-right">
-                <div class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gold/30 text-4xl font-bold">|</div>
-            </div>
+    <!-- القسم الرئيسي (Hero) - صورة عيادة حقيقية -->
+    <section class="relative h-screen flex items-center justify-center">
+        <!-- صورة الخلفية -->
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=2070&auto=format&fit=crop" alt="عيادة أسنان حديثة" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-sand via-sand/60 to-transparent"></div>
         </div>
 
-        <p class="mt-12 text-sm text-gray-500 animate-pulse">مرر الماوس أو اضغط لفتح البوابة</p>
+        <div class="relative z-10 text-center px-4 max-w-4xl mx-auto mt-20">
+            <h1 class="text-5xl md:text-7xl font-black text-dark mb-6 leading-tight drop-shadow-sm">
+                ابتسامتك تستحق <br> <span class="text-saudi">عناية استثنائية</span>
+            </h1>
+            <p class="text-xl text-gray-700 mb-10 max-w-2xl mx-auto font-medium">
+                في عيادة ساهل، نجمع بين أحدث التقنيات الطبية والذكاء الاصطناعي لنقدم لك تجربة علاجية مريحة وآمنة، في قلب المملكة العربية السعودية.
+            </p>
+            <a href="#booking" class="inline-block bg-saudi text-white text-lg font-bold py-4 px-12 rounded-full hover:bg-green-900 transition-all duration-300 shadow-xl shadow-saudi/40 hover:-translate-y-1">
+                ابدأ رحلة ابتسامتك
+            </a>
+        </div>
     </section>
 
-    <!-- قسم الميزات (يظهر بعد التمرير) -->
-    <section class="relative z-10 py-24 px-6 max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="glass-panel p-8 rounded-3xl hover:-translate-y-2 transition-all duration-500">
-                <h3 class="text-2xl font-bold mb-4 text-saudi">ربط القنوات</h3>
-                <p class="text-gray-400">واتساب، إنستغرام، وموقعك الإلكتروني يعملون معاً بسلاسة.</p>
+    <!-- قسم القصة (About) -->
+    <section id="about" class="py-24 px-6 max-w-6xl mx-auto reveal">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div>
+                <h2 class="text-sm font-bold text-gold tracking-widest mb-2 uppercase">قصتنا</h2>
+                <h3 class="text-4xl font-extrabold text-dark mb-6 leading-tight">حيث تلتقي التكنولوجيا <br> بالرعاية الإنسانية</h3>
+                <p class="text-lg text-gray-600 leading-relaxed mb-6">
+                    بدأت رحلة ساهل من فكرة بسيطة: كيف يمكننا جعل زيارة طبيب الأسنان تجربة خالية من التوتر؟ اليوم، نحن عيادة رقمية متكاملة، نستخدم أنظمة ذكية لإدارة مواعيدك، وتذكيرك بها، وحتى التنبؤ باحتياجاتك.
+                </p>
+                <p class="text-lg text-gray-600 leading-relaxed">
+                    نحن فخورون بخدمة المرضى في الرياض وجدة، مع الالتزام الكامل بمعايير الخصوصية السعودية (PDPL) وتوطين البيانات.
+                </p>
             </div>
-            <div class="glass-panel p-8 rounded-3xl hover:-translate-y-2 transition-all duration-500">
-                <h3 class="text-2xl font-bold mb-4 text-gold">ذكاء اصطناعي</h3>
-                <p class="text-gray-400">توقع الغياب وإدارة المواعيد بدقة متناهية لتقليل الخسائر.</p>
+            <div class="relative">
+                <div class="img-arch w-full h-[500px] shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=2070&auto=format&fit=crop" alt="طبيب أسنان" class="w-full h-full object-cover">
+                </div>
+                <div class="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
+                    <p class="text-4xl font-black text-saudi">+15</p>
+                    <p class="text-sm font-bold text-gray-500 mt-1">سنة خبرة</p>
+                </div>
             </div>
-            <div class="glass-panel p-8 rounded-3xl hover:-translate-y-2 transition-all duration-500">
-                <h3 class="text-2xl font-bold mb-4 text-saudi">تخصيص كامل</h3>
-                <p class="text-gray-400">أضف الأدوات التي تحتاجها عيادتك وخصص النظام كما تريد.</p>
+        </div>
+    </section>
+
+    <!-- قسم الخدمات -->
+    <section id="services" class="py-24 bg-white reveal">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-sm font-bold text-gold tracking-widest mb-2 uppercase">خدماتنا</h2>
+                <h3 class="text-4xl font-extrabold text-dark">رعاية متكاملة لكل ابتسامة</h3>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <!-- خدمة 1 -->
+                <div class="group cursor-pointer">
+                    <div class="h-64 overflow-hidden rounded-2xl mb-6 relative">
+                        <img src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=2070&auto=format&fit=crop" alt="تجميل الأسنان" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-saudi/10 group-hover:bg-transparent transition"></div>
+                    </div>
+                    <h4 class="text-2xl font-bold text-dark mb-2">تجميل الأسنان</h4>
+                    <p class="text-gray-500">ابتسامة هوليوود، الفينير، وتصميم الابتسامة الرقمي بأحدث التقنيات.</p>
+                </div>
+                <!-- خدمة 2 -->
+                <div class="group cursor-pointer">
+                    <div class="h-64 overflow-hidden rounded-2xl mb-6 relative">
+                        <img src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=2070&auto=format&fit=crop" alt="زراعة الأسنان" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-saudi/10 group-hover:bg-transparent transition"></div>
+                    </div>
+                    <h4 class="text-2xl font-bold text-dark mb-2">زراعة الأسنان</h4>
+                    <p class="text-gray-500">زراعة فورية بتقنية ثلاثية الأبعاد، لنتائج دقيقة ودائمة.</p>
+                </div>
+                <!-- خدمة 3 -->
+                <div class="group cursor-pointer">
+                    <div class="h-64 overflow-hidden rounded-2xl mb-6 relative">
+                        <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=2070&auto=format&fit=crop" alt="علاج الأسنان" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-saudi/10 group-hover:bg-transparent transition"></div>
+                    </div>
+                    <h4 class="text-2xl font-bold text-dark mb-2">العلاج العام</h4>
+                    <p class="text-gray-500">فحوصات دورية، حشوات تجميلية، وعلاج جذور بدون ألم.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- قسم الفريق -->
+    <section id="team" class="py-24 px-6 max-w-6xl mx-auto reveal">
+        <div class="text-center mb-16">
+            <h2 class="text-sm font-bold text-gold tracking-widest mb-2 uppercase">فريقنا الطبي</h2>
+            <h3 class="text-4xl font-extrabold text-dark">أطباء يعتنون بك</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div class="flex flex-col items-center">
+                <div class="w-64 h-64 rounded-full overflow-hidden mb-6 border-4 border-white shadow-xl">
+                    <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=2070&auto=format&fit=crop" alt="د. أحمد" class="w-full h-full object-cover">
+                </div>
+                <h4 class="text-2xl font-bold text-dark">د. أحمد العتيبي</h4>
+                <p class="text-saudi font-bold text-sm mt-1">استشاري تجميل الأسنان</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-64 h-64 rounded-full overflow-hidden mb-6 border-4 border-white shadow-xl">
+                    <img src="https://images.unsplash.com/photo-1594824436998-d8b31d6d3d0d?q=80&w=2070&auto=format&fit=crop" alt="د. سارة" class="w-full h-full object-cover">
+                </div>
+                <h4 class="text-2xl font-bold text-dark">د. سارة الشمري</h4>
+                <p class="text-saudi font-bold text-sm mt-1">أخصائية زراعة الأسنان</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- قسم الحجز (Booking) -->
+    <section id="booking" class="py-24 bg-dark text-white relative overflow-hidden">
+        <!-- خلفية شبكية خفيفة -->
+        <div id="vanta-bg" class="absolute inset-0 z-0 opacity-40"></div>
+
+        <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-sm font-bold text-gold tracking-widest mb-2 uppercase">احجز الآن</h2>
+            <h3 class="text-4xl font-extrabold mb-6">موعدك معنا هو بداية ابتسامتك</h3>
+            <p class="text-gray-400 mb-10 max-w-2xl mx-auto">اختر الخدمة التي تحتاجها، وسنقوم بالتواصل معك عبر الواتساب لتأكيد الموعد في أقل من 5 دقائق.</p>
+
+            <form class="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/10 max-w-lg mx-auto text-right" onsubmit="event.preventDefault(); alert('تم استلام طلب الحجز!');">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">الاسم الكامل</label>
+                    <input type="text" required class="w-full bg-black/30 border border-white/20 rounded-xl p-4 text-white focus:border-gold focus:outline-none transition">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">رقم الجوال</label>
+                    <input type="tel" required pattern="05[0-9]{8}" placeholder="05xxxxxxxx" class="w-full bg-black/30 border border-white/20 rounded-xl p-4 text-white focus:border-gold focus:outline-none transition">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">الخدمة المطلوبة</label>
+                    <select class="w-full bg-black/30 border border-white/20 rounded-xl p-4 text-white focus:border-gold focus:outline-none transition">
+                        <option>تجميل الأسنان</option>
+                        <option>زراعة الأسنان</option>
+                        <option>علاج عام</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-saudi hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-saudi/30">
+                    تأكيد الحجز عبر الواتساب
+                </button>
+            </form>
         </div>
     </section>
 
     <!-- الفوتر -->
-    <footer class="relative z-10 border-t border-white/10 bg-black/80 py-8 text-center text-sm text-gray-500">
-        <div class="flex justify-center gap-6 mb-4">
-            <a href="/privacy" class="hover:text-gold transition">سياسة الخصوصية</a>
-            <a href="/terms" class="hover:text-gold transition">شروط الخدمة</a>
-            <a href="/data-deletion" class="hover:text-gold transition">حذف البيانات</a>
+    <footer class="bg-sand border-t border-gray-200 py-12 text-center text-sm text-gray-500">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="text-2xl font-extrabold text-saudi mb-4">ساهل | Sahels</div>
+            <div class="flex justify-center gap-6 mb-6">
+                <a href="/privacy" class="hover:text-saudi transition">سياسة الخصوصية</a>
+                <a href="/terms" class="hover:text-saudi transition">شروط الخدمة</a>
+                <a href="/data-deletion" class="hover:text-saudi transition">حذف البيانات</a>
+            </div>
+            <p>جميع البيانات محفوظة ومعالجة داخل المملكة العربية السعودية وفقاً لنظام PDPL.</p>
+            <p class="mt-2 text-xs opacity-60">© 2026 عيادة ساهل. جميع الحقوق محفوظة.</p>
         </div>
-        <p>البيانات محفوظة داخل المملكة العربية السعودية (PDPL).</p>
     </footer>
 
-    <!-- النافذة المنبثقة (Modal) -->
-    <div id="inquiryModal" class="modal-overlay">
-        <div class="modal-content glass-panel p-8 rounded-3xl max-w-md w-full mx-4 relative border border-gold/30">
-            <!-- زر الإغلاق -->
-            <button onclick="toggleModal()" class="absolute top-4 left-4 text-gray-400 hover:text-white transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-saudi/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-saudi" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                </div>
-                <h2 class="text-2xl font-bold text-white">استفسار سريع</h2>
-                <p class="text-gray-400 text-sm mt-2">اترك بياناتك وسيتواصل معك فريقنا فوراً.</p>
-            </div>
-
-            <form onsubmit="event.preventDefault(); alert('تم استلام طلبك بنجاح!'); toggleModal();" class="space-y-4">
-                <input type="text" placeholder="الاسم الكامل" required class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-gold focus:outline-none transition">
-                <input type="tel" placeholder="رقم الجوال (05xxxxxxxx)" required pattern="05[0-9]{8}" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-gold focus:outline-none transition">
-                <button type="submit" class="w-full bg-gradient-to-l from-saudi to-green-600 text-white font-bold py-3 rounded-xl hover:shadow-[0_0_20px_rgba(0,122,61,0.4)] transition-all">
-                    إرسال الطلب
-                </button>
-            </form>
-        </div>
+    <!-- أزرار التواصل العائمة -->
+    <div class="fixed bottom-8 left-8 z-50 flex flex-col gap-4">
+        <a href="https://wa.me/966500000000" target="_blank" class="w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform">
+            <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </a>
     </div>
 
-    <!-- السكريبتات -->
     <script>
-        // تهيئة الخلفية السينمائية
-        VANTA.HALO({
+        // تأثير الظهور عند التمرير
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.15 });
+        reveals.forEach(reveal => observer.observe(reveal));
+
+        // خلفية Vanta خفيفة جداً في قسم الحجز فقط
+        VANTA.NET({
             el: "#vanta-bg",
-            mouseControls: true,
-            touchControls: true,
+            mouseControls: false,
+            touchControls: false,
             gyroControls: false,
             minHeight: 200.00,
             minWidth: 200.00,
-            baseColor: 0x007a3d, // أخضر
-            backgroundColor: 0x050505, // أسود
-            amplitudeFactor: 2.0,
-            size: 1.5
-        });
-
-        // التحكم في النافذة المنبثقة
-        function toggleModal() {
-            const modal = document.getElementById('inquiryModal');
-            modal.classList.toggle('active');
-        }
-
-        // إغلاق النافذة عند النقر خارجها
-        document.getElementById('inquiryModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                toggleModal();
-            }
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0xC5A059, // ذهبي
+            backgroundColor: 0x111111,
+            points: 10.00,
+            maxDistance: 20.00,
+            spacing: 20.00
         });
     </script>
 </body>
