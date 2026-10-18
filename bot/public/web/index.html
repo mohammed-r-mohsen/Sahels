@@ -3,357 +3,400 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ساهل | الهوية الطبية السعودية الذكية</title>
+    <title>ساهل | بوابة العيادة الذكية 2030</title>
+    
+    <!-- الخطوط -->
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        saudi: '#0A5C36',
-                        saudiLight: '#0E7A48',
-                        gold: '#C5A059',
-                        glass: 'rgba(255, 255, 255, 0.05)',
-                    },
-                    fontFamily: { arabic: ['Almarai', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
     <style>
-        :root { --saudi: #0A5C36; --gold: #C5A059; }
-        body { font-family: 'Almarai', sans-serif; background-color: #030706; color: white; overflow-x: hidden; }
-        
-        /* نمط هندسي سعودي في الخلفية */
-        .saudi-pattern {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; opacity: 0.03; pointer-events: none;
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C5A059' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        :root { 
+            --saudi: #0A5C36; 
+            --gold: #C5A059; 
+            --dark: #030706; 
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Almarai', sans-serif; }
+        body { background-color: var(--dark); color: white; overflow-x: hidden; }
+
+        /* حاوية WebGL */
+        #canvas-container { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            z-index: 0; 
         }
 
-        /* حاوية المشهد ثلاثي الأبعاد */
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; }
-
-        /* المحتوى فوق المشهد */
-        #content-layer { position: relative; z-index: 10; }
-
-        /* تصميم زجاجي طبي */
-        .medical-glass {
-            background: rgba(10, 20, 15, 0.4);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        /* طبقة واجهة المستخدم (UI) */
+        #ui-layer {
+            position: relative; 
+            z-index: 10; 
+            pointer-events: none; /* السماح بمرور الأحداث إلى WebGL */
         }
+        #ui-layer > * { pointer-events: auto; }
 
-        /* نص متدرج ذهبي */
-        .text-gradient-gold {
-            background: linear-gradient(135deg, #F3E5AB, #C5A059, #9A7732);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* شاشة البداية (تختفي عند التمرير) */
+        .hero-section {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            background: linear-gradient(to bottom, rgba(3,7,6,0.8) 0%, rgba(3,7,6,0) 100%);
         }
-
-        /* زر طبي سعودي */
-        .btn-medical {
-            background: linear-gradient(135deg, var(--saudi), #063d23);
-            border: 1px solid rgba(197, 160, 89, 0.3);
-            box-shadow: 0 10px 30px rgba(10, 92, 54, 0.4);
+        .hero-section h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.9);
+        }
+        .hero-section h1 span { color: var(--gold); }
+        .hero-section p {
+            font-size: 1.4rem;
+            color: #ccc;
+            max-width: 600px;
+            margin-bottom: 40px;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.9);
+        }
+        .btn-scroll {
+            padding: 15px 40px;
+            background: var(--saudi);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow: 0 0 30px rgba(10, 92, 54, 0.6);
         }
-        .btn-medical:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(10, 92, 54, 0.6), 0 0 20px rgba(197, 160, 89, 0.2);
-            border-color: rgba(197, 160, 89, 0.6);
+        .btn-scroll:hover {
+            background: #0d7a48;
+            box-shadow: 0 0 50px rgba(10, 92, 54, 0.9);
+            transform: scale(1.05);
+        }
+
+        /* مساحة التمرير لتحريك الكاميرا */
+        .scroll-space {
+            height: 300vh; /* مساحة كافية لتحريك الكاميرا */
+        }
+
+        /* نافذة التسجيل (تظهر عند فتح الباب) */
+        #registration-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(10, 20, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--gold);
+            border-radius: 20px;
+            padding: 40px;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #registration-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        #registration-modal h2 {
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        #registration-modal input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+        }
+        #registration-modal input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+        #registration-modal button {
+            width: 100%;
+            padding: 15px;
+            background: var(--saudi);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #registration-modal button:hover {
+            background: #0d7a48;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1.5rem;
         }
     </style>
 </head>
-<body class="antialiased">
+<body>
 
-    <!-- النمط السعودي -->
-    <div class="saudi-pattern"></div>
-    
     <!-- مشهد Three.js -->
     <div id="canvas-container"></div>
 
-    <!-- شريط التنقل -->
-    <nav class="fixed w-full z-50 top-0 border-b border-white/5 bg-black/20 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <!-- أيقونة طبية سعودية -->
-                <div class="w-10 h-10 rounded-xl bg-saudi flex items-center justify-center shadow-[0_0_15px_rgba(10,92,54,0.8)]">
-                    <svg class="w-6 h-6 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                </div>
-                <div class="text-2xl font-extrabold text-white">ساهل <span class="text-gold font-light text-lg">| Sahels</span></div>
-            </div>
-            <div class="hidden md:flex space-x-8 space-x-reverse font-bold text-gray-300">
-                <a href="#features" class="hover:text-gold transition">المميزات</a>
-                <a href="#security" class="hover:text-gold transition">السيادة السعودية</a>
-                <a href="/web/contact.html" class="hover:text-gold transition">تواصل معنا</a>
-            </div>
-            <a href="/web/contact.html" class="hidden md:inline-block btn-medical text-white px-6 py-2 rounded-full font-bold">ابدأ الآن</a>
-        </div>
-    </nav>
-
-    <!-- المحتوى القابل للتمرير -->
-    <div id="content-layer">
-        
-        <!-- القسم الأول (Hero) -->
-        <section class="min-h-screen flex flex-col justify-center items-center text-center px-4 relative">
-            <div class="medical-glass px-8 py-12 md:p-16 rounded-[3rem] max-w-4xl mx-auto mt-20 hero-box">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 bg-saudi/20 mb-8">
-                    <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
-                    <span class="text-gold text-sm font-bold">مرخص ومتوافق مع PDPL</span>
-                </div>
-                
-                <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
-                    رعاية طبية ذكية <br> 
-                    <span class="text-gradient-gold">بلمسة سعودية</span>
-                </h1>
-                
-                <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
-                    نربط عيادتك بالواتساب والإنستغرام، ونؤتمت المواعيد بالذكاء الاصطناعي. بياناتك محفوظة بسيادة كاملة داخل المملكة، لخدمة أرقى للقطاع الصحي.
-                </p>
-                
-                <div class="flex flex-col md:flex-row gap-4 justify-center">
-                    <a href="/web/contact.html" class="btn-medical text-white text-lg font-bold py-4 px-10 rounded-full">
-                        احجز استشارة تقنية
-                    </a>
-                    <a href="#features" class="bg-white/5 hover:bg-white/10 text-white border border-white/10 text-lg font-bold py-4 px-10 rounded-full transition">
-                        استكشف المنصة
-                    </a>
-                </div>
-            </div>
+    <!-- واجهة المستخدم -->
+    <div id="ui-layer">
+        <!-- قسم الترحيب -->
+        <section class="hero-section">
+            <h1>بوابة <span>ساهل</span> الرقمية</h1>
+            <p>مرحباً بك في مستقبل إدارة العيادات. مرر للأسفل للاقتراب من المدخل.</p>
+            <button class="btn-scroll" onclick="window.scrollTo({top: window.innerHeight, behavior: 'smooth'})">ابدأ الجولة</button>
         </section>
 
-        <!-- القسم الثاني (المميزات الطبية) -->
-        <section id="features" class="py-32 px-6 max-w-7xl mx-auto">
-            <div class="text-center mb-20 feature-title">
-                <h2 class="text-gold font-bold tracking-widest mb-3 uppercase text-sm">بنية تحتية طبية</h2>
-                <h3 class="text-4xl md:text-5xl font-extrabold text-white">أدوات صُممت لتناسب <br> طبيعة العيادات السعودية</h3>
-            </div>
+        <!-- مساحة التمرير -->
+        <div class="scroll-space"></div>
+    </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- بطاقة 1 -->
-                <div class="medical-glass p-8 rounded-3xl feature-card group hover:border-gold/40 transition duration-500">
-                    <div class="w-14 h-14 rounded-2xl bg-saudi/30 flex items-center justify-center mb-6 group-hover:scale-110 transition">
-                        <svg class="w-7 h-7 text-saudi" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    </div>
-                    <h4 class="text-2xl font-bold text-white mb-3">بوت الحجز الطبي</h4>
-                    <p class="text-gray-400 leading-relaxed">يتفاعل مع المرضى بلغة عربية فصيحة، يحجز المواعيد، ويجيب على استفسارات العيادة على مدار الساعة.</p>
-                </div>
-
-                <!-- بطاقة 2 -->
-                <div class="medical-glass p-8 rounded-3xl feature-card group hover:border-gold/40 transition duration-500">
-                    <div class="w-14 h-14 rounded-2xl bg-gold/10 flex items-center justify-center mb-6 group-hover:scale-110 transition">
-                        <svg class="w-7 h-7 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                    </div>
-                    <h4 class="text-2xl font-bold text-white mb-3">توقع الغياب (AI)</h4>
-                    <p class="text-gray-400 leading-relaxed">خوارزميات تحلل تاريخ المريض لتنبئك بمن قد يتغيب عن موعده، لتتمكن من التصرف مسبقاً وتقليل الخسائر.</p>
-                </div>
-
-                <!-- بطاقة 3 -->
-                <div class="medical-glass p-8 rounded-3xl feature-card group hover:border-gold/40 transition duration-500">
-                    <div class="w-14 h-14 rounded-2xl bg-saudi/30 flex items-center justify-center mb-6 group-hover:scale-110 transition">
-                        <svg class="w-7 h-7 text-saudi" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                    </div>
-                    <h4 class="text-2xl font-bold text-white mb-3">خصوصية مطلقة</h4>
-                    <p class="text-gray-400 leading-relaxed">تشفير كامل للبيانات (AES-256)، مع استضافة داخل مراكز بيانات سعودية، لضمان توافق تام مع الأنظمة.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- القسم الثالث (السيادة السعودية) -->
-        <section id="security" class="py-24 px-6 max-w-6xl mx-auto">
-            <div class="medical-glass rounded-[3rem] p-10 md:p-16 relative overflow-hidden flex flex-col md:flex-row items-center gap-12 security-box">
-                <!-- تأثير خلفية -->
-                <div class="absolute inset-0 bg-gradient-to-l from-saudi/20 to-transparent pointer-events-none"></div>
-
-                <div class="flex-1 z-10">
-                    <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-6">سيادة سعودية <br><span class="text-gradient-gold">بمعايير عالمية</span></h2>
-                    <p class="text-gray-300 text-lg leading-relaxed mb-8">
-                        نحن لا نستنسخ الحلول الأجنبية. "ساهل" بُني ليتوافق مع الهوية الرقمية السعودية، ويعالج بيانات مرضاك داخل المملكة، وفقاً لنظام حماية البيانات الشخصية (PDPL) وتوجيهات وزارة الصحة.
-                    </p>
-                    <ul class="space-y-4 text-gray-300 font-bold">
-                        <li class="flex items-center gap-3"><svg class="w-6 h-6 text-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> استضافة سحابية داخل الرياض أو جدة.</li>
-                        <li class="flex items-center gap-3"><svg class="w-6 h-6 text-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> عدم نقل البيانات خارج المملكة نهائياً.</li>
-                        <li class="flex items-center gap-3"><svg class="w-6 h-6 text-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> سجل تدقيق كامل لكل عملية وصول.</li>
-                    </ul>
-                </div>
-                <div class="flex-1 z-10 flex justify-center">
-                    <!-- شعار الرؤية أو أيقونة سعودية -->
-                    <div class="w-64 h-64 rounded-full border border-gold/30 flex items-center justify-center relative">
-                        <div class="absolute inset-0 rounded-full border border-saudi/50 animate-[spin_10s_linear_infinite]"></div>
-                        <div class="absolute inset-4 rounded-full border border-gold/20 animate-[spin_15s_linear_infinite_reverse]"></div>
-                        <svg class="w-32 h-32 text-gold opacity-80" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- الفوتر -->
-        <footer class="border-t border-white/10 bg-black/50 py-12 text-center text-sm text-gray-500 relative z-10">
-            <div class="max-w-4xl mx-auto px-6">
-                <div class="text-2xl font-extrabold text-white mb-6">ساهل | Sahels</div>
-                <div class="flex justify-center gap-6 mb-8 font-bold">
-                    <a href="/privacy" class="hover:text-gold transition">سياسة الخصوصية</a>
-                    <a href="/terms" class="hover:text-gold transition">شروط الخدمة</a>
-                    <a href="/data-deletion" class="hover:text-gold transition">حذف البيانات</a>
-                </div>
-                <p>البيانات محفوظة ومعالجة داخل المملكة العربية السعودية وفقاً لنظام PDPL.</p>
-                <p class="mt-2 text-xs opacity-50">© 2026 شركة ساهل للحلول التقنية. جميع الحقوق محفوظة.</p>
-            </div>
-        </footer>
+    <!-- نافذة التسجيل -->
+    <div id="registration-modal">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h2>سجل عيادتك الآن</h2>
+        <form onsubmit="event.preventDefault(); alert('تم التسجيل بنجاح!'); closeModal();">
+            <input type="text" placeholder="اسم العيادة" required>
+            <input type="text" placeholder="اسم المسؤول" required>
+            <input type="tel" placeholder="رقم الجوال (05xxxxxxxx)" required pattern="05[0-9]{8}">
+            <button type="submit">انضم إلى ساهل</button>
+        </form>
     </div>
 
     <!-- المكتبات -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/bundled/lenis.min.js"></script>
+    <script src="https://unpkg.com/troika-three-text@0.49.0/dist/troika-three-text.umd.js"></script>
 
     <script>
-        // 1. إعداد Three.js Scene
+        // 1. إعداد Lenis للتمرير السلس
+        const lenis = new Lenis({
+            duration: 1.5,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            smooth: true,
+        });
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+        // 2. إعداد Three.js Scene
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 20;
+        scene.fog = new THREE.FogExp2(0x030706, 0.015); // ضباب خفيف للعمق
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 15); // البداية بعيداً عن المبنى
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        // 2. بناء "الخلية الطبية" ثلاثية الأبعاد
-        // الحمض النووي / الخلية عبارة عن كرة داخلية متوهجة وشبكة خارجية
-        const group = new THREE.Group();
-        scene.add(group);
-
-        // النواة الداخلية (بلازما)
-        const coreGeometry = new THREE.IcosahedronGeometry(5, 2);
-        const coreMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x0A5C36, // أخضر
-            wireframe: true,
-            transparent: true,
-            opacity: 0.3
-        });
-        const core = new THREE.Mesh(coreGeometry, coreMaterial);
-        group.add(core);
-
-        // الشبكة الخارجية (الغشاء الخلوي)
-        const shellGeometry = new THREE.IcosahedronGeometry(8, 1);
-        const shellMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xC5A059, // ذهبي
-            wireframe: true,
-            emissive: 0xC5A059,
-            emissiveIntensity: 0.5,
-            transparent: true,
-            opacity: 0.6
-        });
-        const shell = new THREE.Mesh(shellGeometry, shellMaterial);
-        group.add(shell);
-
-        // جزيئات طبية صغيرة تدور حولها
-        const particlesGeo = new THREE.BufferGeometry();
-        const particleCount = 400;
-        const posArray = new Float32Array(particleCount * 3);
-        for(let i = 0; i < particleCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 40; // توزيع عشوائي
-        }
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const particlesMat = new THREE.PointsMaterial({
-            size: 0.15,
-            color: 0x0A5C36,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
-        const particles = new THREE.Points(particlesGeo, particlesMat);
-        group.add(particles);
-
-        // إضاءة
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // 3. الإضاءة
+        const ambientLight = new THREE.AmbientLight(0x404040, 1);
         scene.add(ambientLight);
-        const pointLight = new THREE.PointLight(0xC5A059, 1, 100);
-        pointLight.position.set(10, 10, 10);
-        scene.add(pointLight);
 
-        // 3. حركات GSAP
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 10, 7);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        scene.add(dirLight);
+
+        // إضاءة نيون سعودية
+        const saudiLight = new THREE.PointLight(0x0A5C36, 2, 20);
+        saudiLight.position.set(-5, 3, 5);
+        scene.add(saudiLight);
+
+        const goldLight = new THREE.PointLight(0xC5A059, 2, 20);
+        goldLight.position.set(5, 3, 5);
+        scene.add(goldLight);
+
+        // 4. بناء الأرضية
+        const floorGeometry = new THREE.PlaneGeometry(50, 50);
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x111111, 
+            roughness: 0.1, 
+            metalness: 0.8 
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // 5. بناء المبنى (العيادة)
+        const buildingGroup = new THREE.Group();
+
+        // الجدران
+        const wallMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x222222, 
+            roughness: 0.5, 
+            metalness: 0.5 
+        });
+        const wallGeometry = new THREE.BoxGeometry(8, 6, 4);
+        const building = new THREE.Mesh(wallGeometry, wallMaterial);
+        building.position.set(0, 3, 0);
+        building.castShadow = true;
+        building.receiveShadow = true;
+        buildingGroup.add(building);
+
+        // إطار الباب (الذهبي)
+        const doorFrameMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xC5A059, 
+            emissive: 0xC5A059, 
+            emissiveIntensity: 0.5,
+            metalness: 1,
+            roughness: 0.2
+        });
+        const doorFrameGeometry = new THREE.BoxGeometry(2.2, 4.2, 0.2);
+        const doorFrame = new THREE.Mesh(doorFrameGeometry, doorFrameMaterial);
+        doorFrame.position.set(0, 2.1, 2.01);
+        buildingGroup.add(doorFrame);
+
+        // الباب الزجاجي (يتحرك)
+        const doorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x0A5C36, 
+            emissive: 0x0A5C36, 
+            emissiveIntensity: 0.3,
+            transparent: true, 
+            opacity: 0.6,
+            metalness: 0.9,
+            roughness: 0.1
+        });
+        const doorGeometry = new THREE.BoxGeometry(2, 4, 0.1);
+        const door = new THREE.Mesh(doorGeometry, doorMaterial);
+        door.position.set(0, 2, 2.05);
+        door.castShadow = true;
+        // تعيين نقطة الأصل للدوران من الحافة
+        door.geometry.translate(1, 0, 0); 
+        door.position.set(-1, 2, 2.05);
+        buildingGroup.add(door);
+
+        // نص ثلاثي الأبعاد فوق الباب
+        const textGeometry = new THREE.TextGeometry('عيادة ساهل', { // ملاحظة: Three.js TextGeometry يحتاج خطوط، سنستخدم Troika بدلاً منه لاحقاً
+            // ...
+        });
+        // سنستخدم Troika Text
+        const troikaText = new Troika.Text();
+        troikaText.text = 'عيادة ساهل';
+        troikaText.fontSize = 0.8;
+        troikaText.color = 0xC5A059;
+        troikaText.position.set(0, 5, 2.1);
+        troikaText.anchorX = 'center';
+        buildingGroup.add(troikaText);
+
+        scene.add(buildingGroup);
+
+        // 6. حركة الكاميرا مع التمرير (GSAP ScrollTrigger)
         gsap.registerPlugin(ScrollTrigger);
 
-        // تدوير المجسم عند التمرير
-        gsap.to(group.rotation, {
-            y: Math.PI * 2,
-            x: Math.PI * 2,
+        // تحريك الكاميرا للأمام نحو الباب
+        gsap.to(camera.position, {
+            z: 3.5, // الاقتراب من الباب
+            y: 2,   // الارتفاع قليلاً
             scrollTrigger: {
-                trigger: "body",
+                trigger: ".scroll-space",
                 start: "top top",
                 end: "bottom bottom",
-                scrub: 2
+                scrub: 1, // مزامنة مع التمرير
             }
         });
 
-        // تحريك الكاميرا للخلف عند التمرير لإظهار المحتوى
-        gsap.to(camera.position, {
-            z: 30,
+        // إمالة الكاميرا قليلاً عند الاقتراب
+        gsap.to(camera.rotation, {
+            x: -0.1,
             scrollTrigger: {
-                trigger: "#features",
-                start: "top bottom",
-                end: "top top",
-                scrub: 1
+                trigger: ".scroll-space",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 1,
             }
         });
 
-        // ظهور البطاقات
-        gsap.from(".feature-card", {
-            scrollTrigger: { trigger: "#features", start: "top 80%" },
-            y: 50,
-            opacity: 0,
-            duration: 1,
-            stagger: 0.2
+        // 7. التفاعل مع الباب (النقر)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('click', (event) => {
+            // حساب إحداثيات الماوس
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(door);
+
+            if (intersects.length > 0) {
+                // فتح الباب
+                gsap.to(door.rotation, {
+                    y: -Math.PI / 2, // دوران 90 درجة
+                    duration: 1.5,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        // إظهار نافذة التسجيل
+                        document.getElementById('registration-modal').classList.add('active');
+                    }
+                });
+                // تغيير لون الباب إلى الذهبي
+                gsap.to(doorMaterial.emissive, {
+                    r: 0.77, g: 0.62, b: 0.35, // لون ذهبي
+                    duration: 1
+                });
+            }
         });
 
-        gsap.from(".security-box", {
-            scrollTrigger: { trigger: "#security", start: "top 80%" },
-            scale: 0.9,
-            opacity: 0,
-            duration: 1
-        });
+        // إغلاق النافذة وإعادة الباب
+        window.closeModal = function() {
+            document.getElementById('registration-modal').classList.remove('active');
+            gsap.to(door.rotation, {
+                y: 0,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+            gsap.to(doorMaterial.emissive, {
+                r: 0.04, g: 0.36, b: 0.21, // العودة للأخضر
+                duration: 1
+            });
+        };
 
-        // 4. تفاعل الماوس
-        let mouseX = 0, mouseY = 0;
-        window.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-        });
-
-        // 5. Render Loop
-        const clock = new THREE.Clock();
+        // 8. حلقة الرسم
         function animate() {
             requestAnimationFrame(animate);
-            const t = clock.getElapsedTime();
-
-            // تنفس الخلية
-            const scale = 1 + Math.sin(t * 2) * 0.03;
-            shell.scale.set(scale, scale, scale);
-            core.scale.set(scale, scale, scale);
-
-            // دوران مستمر
-            group.rotation.y += 0.002;
-            group.rotation.x += 0.001;
-
-            // الكاميرا تتبع الماوس
-            camera.position.x += (mouseX * 3 - camera.position.x) * 0.05;
-            camera.position.y += (mouseY * 3 - camera.position.y) * 0.05;
-            camera.lookAt(scene.position);
+            
+            // إضاءة نيون متحركة
+            const time = Date.now() * 0.001;
+            saudiLight.intensity = 1.5 + Math.sin(time * 2) * 0.5;
+            goldLight.intensity = 1.5 + Math.cos(time * 2) * 0.5;
 
             renderer.render(scene, camera);
         }
         animate();
 
-        // 6. Resize
+        // 9. التعامل مع تغيير الحجم
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
