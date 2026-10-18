@@ -3,229 +3,364 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ساهل | كل كرسي فارغ له حل</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;500;700&family=Tajawal:wght@800;900&display=swap" rel="stylesheet">
+<title>ساهل | المنصة الذكية لإدارة ومواعيد العيادات الطبية</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
 <style>
-:root{
- --bg:#F9F6F0;
- --ink:#0A3D2E;
- --teal:#0A3D2E;
- --miss:#FF5A3C;
- --gold:#C5A059;
- --green:#0A3D2E;
- --paper:#FFFDFA;
- --pat:url("data:image/svg+xml,[STRIPPED]);
+:root {
+  --bg: #071722;
+  --panel-bg: rgba(15, 38, 54, 0.7);
+  --ink: #EEF5F8;
+  --ink-dim: #94AEC0;
+  --teal: #00C9A7;
+  --teal-glow: rgba(0, 201, 167, 0.25);
+  --miss: #FF5A3C;
+  --miss-glow: rgba(255, 90, 60, 0.2);
+  --gold: #D4AF37;
+  --gold-glow: rgba(212, 175, 55, 0.2);
+  --paper: #0B2230;
+  --border: rgba(212, 175, 55, 0.25);
 }
-*{box-sizing:border-box;margin:0}
-html.lenis{height:auto}
-body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden;cursor:none}
-a,button{cursor:none;font:inherit;color:inherit;text-decoration:none}
-.display{font-family:'Tajawal',sans-serif;font-weight:900;line-height:1.02}
 
-/* CURSOR جديد: كرسي صغير */
-#cur{position:fixed;top:0;left:0;width:34px;height:34px;margin:-17px 0 0 -17px;z-index:99;pointer-events:none;transition:width .3s,height .3s,margin .3s,transform .15s}
-#cur svg{width:100%;height:100%;fill:none;stroke:var(--ink);stroke-width:2.2;transition:stroke .3s,fill .3s}
-#cur.hot{width:64px;height:64px;margin:-32px 0 0 -32px;transform:rotate(12deg)}
-#cur.hot svg{stroke:var(--miss);fill:rgba(255,90,60,.15)}
-@media (hover:none){body,a,button{cursor:auto}#cur{display:none}}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html.lenis { height: auto; }
+body {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
 
-nav{position:fixed;inset:0 0 auto 0;z-index:30;display:flex;justify-content:space-between;align-items:center;padding:1.4rem clamp(1.2rem,4vw,3.5rem)}
-.logo{font-size:2rem;background:var(--paper);padding:.1rem 1.1rem;border-radius:99px;border:1px solid var(--gold)}
-.pill{background:var(--ink);color:var(--paper);padding:.8rem 1.8rem;border-radius:99px;font-weight:700;display:inline-block;transition:transform .3s}
+a, button { font: inherit; color: inherit; text-decoration: none; cursor: pointer; }
+.display { font-family: 'Tajawal', sans-serif; font-weight: 900; }
 
-#hero{position:relative;height:100svh;min-height:700px;overflow:hidden;background:linear-gradient(160deg,#FFE3CC,#9AD4D6)}
-#sky,#fx{position:absolute;inset:0;width:100%;height:100%}
-#sky{pointer-events:none}
-#fx{touch-action:pan-y;transition:opacity .6s}
-.hero-copy{position:absolute;inset:auto 0 7vh 0;margin:0 auto;text-align:center;max-width:980px;padding:0 1.2rem;color:var(--ink);pointer-events:none}
-.hero-copy h1{font-size:clamp(2.6rem,6.5vw,5.6rem);text-shadow:none}
-.hero-copy h1 em{font-style:normal;color:var(--miss)}
-.hero-copy p{font-size:clamp(1rem,1.6vw,1.25rem);margin:1.2rem auto 1.6rem;max-width:36rem;line-height:1.9;opacity:.9;transition:opacity .4s;background:none}
-.hero-copy .row{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;pointer-events:auto}
-.ghost{border:1.5px solid var(--ink);padding:1rem 1.8rem;border-radius:99px;font-weight:700;background:transparent}
-.ghost[aria-pressed=true]{background:var(--miss);color:#fff;border-color:var(--miss)}
-.cta{background:var(--miss);color:#fff;padding:1rem 2.4rem;border-radius:99px;font-weight:700;font-size:1.15rem;display:inline-block;box-shadow:0 18px 40px -16px rgba(11,34,48,.55);transition:transform .3s}
-.greet{display:inline-block;background:rgba(255,253,250,.85);border:1px solid var(--gold);padding:.45rem 1.2rem;border-radius:99px;font-weight:700;margin-bottom:1.1rem}
-.times{position:absolute;top:6.3rem;inset-inline-start:clamp(1.2rem,4vw,3.5rem);display:flex;gap:.4rem;z-index:2}
-.times button{padding:.4rem 1rem;border-radius:99px;border:1px solid var(--gold);background:rgba(255,253,250,.75);font-weight:500;font-size:.85rem}
-.times button[aria-pressed=true]{background:#0B2230;color:#fff}
-#score{position:absolute;top:6.3rem;inset-inline-end:clamp(1.2rem,4vw,3.5rem);background:var(--paper);border:1px solid var(--gold);border-radius:22px;padding:1rem 1.5rem;pointer-events:none;box-shadow:0 20px 40px -24px rgba(6,35,31,.5);z-index:2}
-#score b{font-family:'Tajawal';font-size:2.6rem;font-weight:900;display:block;line-height:1}
-#score small{font-size:.85rem;opacity:.75;display:block}
-.hint{position:absolute;top:56%;left:0;right:0;text-align:center;pointer-events:none;font-weight:500;font-size:.95rem;opacity:.7}
+/* Custom Glassmorphism Nav */
+nav {
+  position: fixed; inset: 0 0 auto 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.2rem clamp(1.2rem, 5vw, 4rem);
+  background: rgba(7, 23, 34, 0.8);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.logo { font-size: 2.2rem; color: #fff; letter-spacing: -0.5px; }
+.logo span { color: var(--teal); }
+.pill {
+  background: linear-gradient(135deg, var(--teal), #00897B);
+  color: #fff; padding: 0.8rem 2rem; border-radius: 99px;
+  font-weight: 700; transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 10px 25px var(--teal-glow);
+}
+.pill:hover { transform: translateY(-2px); box-shadow: 0 15px 30px var(--teal-glow); }
 
-/* STORY */
-#story{height:100svh;overflow:hidden;position:relative;background:#0A3D2E var(--pat);color:var(--paper)}
-#track{display:flex;width:max-content;height:100%}
-.panel{width:100vw;height:100%;padding:7rem clamp(1.2rem,5vw,5rem) 4rem;display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:center}
-.panel .word{font-size:clamp(6rem,21vw,19rem);color:transparent;-webkit-text-stroke:2px var(--gold)}
-.panel .word.fill{color:var(--gold);-webkit-text-stroke:0}
-.panel h3{font-size:clamp(1.6rem,3vw,2.6rem);font-weight:700;margin:.5rem 0 1rem;line-height:1.4}
-.panel p{font-size:1.15rem;line-height:2;opacity:.8;max-width:30rem}
-.viz{background:rgba(247,250,249,.06);border:1px solid rgba(197,160,89,.5);border-radius:32px;padding:2rem;min-height:320px;display:flex;flex-direction:column;justify-content:center;gap:.8rem}
-.msg{padding:.7rem 1.1rem;border-radius:20px;max-width:82%;font-size:1.02rem;opacity:0;animation:pop 9s infinite}
-.m-in{background:rgba(247,250,249,.12)}.m-out{background:var(--gold);margin-inline-start:auto;color:#2a1d05;font-weight:500}
-@keyframes pop{0%{opacity:0;transform:translateY(14px)}6%,86%{opacity:1;transform:none}100%{opacity:0}}
-#bar{position:absolute;bottom:0;inset-inline:0;height:5px;background:rgba(255,255,255,.12)}
-#bar i{display:block;height:100%;width:0;background:var(--gold)}
+/* Hero Section */
+#hero {
+  position: relative; min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8rem 1.5rem 4rem; text-align: center;
+  background: radial-gradient(circle at 50% 30%, rgba(0, 201, 167, 0.08), transparent 70%);
+}
+.hero-content { max-width: 900px; margin: 0 auto; z-index: 2; }
+.badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold);
+  color: var(--gold); padding: 0.4rem 1.2rem; border-radius: 99px;
+  font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem;
+}
+.hero-content h1 {
+  font-size: clamp(2.8rem, 6.5vw, 5.5rem); line-height: 1.15;
+  margin-bottom: 1.5rem; text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.hero-content h1 em { font-style: normal; color: var(--miss); }
+.hero-content p {
+  font-size: clamp(1.1rem, 1.8vw, 1.4rem); color: var(--ink-dim);
+  max-width: 680px; margin: 0 auto 2.5rem; line-height: 1.8;
+}
+.hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.cta-sec {
+  border: 1px solid var(--border); background: var(--panel-bg);
+  padding: 0.8rem 2rem; border-radius: 99px; font-weight: 700;
+  transition: background 0.3s, border-color 0.3s;
+}
+.cta-sec:hover { border-color: var(--teal); background: rgba(0,201,167,0.1); }
 
-/* CTA الجديد كلياً - سيكولوجية الخسارة */
-#cta{background:var(--paper);min-height:100svh;display:grid;place-items:center;padding:6rem 1.5rem;position:relative;overflow:hidden}
-#cta::before{content:'';position:absolute;inset:0;background:var(--pat);opacity:.5}
-.cta-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.1fr .9fr;gap:4rem;align-items:center;max-width:1200px;width:100%}
-@media(max-width:900px){.cta-grid{grid-template-columns:1fr;text-align:center}}
-.cta-text h2{font-size:clamp(2.8rem,6vw,5.5rem);line-height:.95;margin-bottom:1.5rem}
-.cta-text h2 span{color:var(--miss);display:block}
-.cta-text p{font-size:1.25rem;line-height:2;opacity:.75;max-width:30rem;margin-bottom:2rem}
-.cta-chairs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;background:#0A3D2E;border:1px solid var(--gold);border-radius:28px;padding:20px;transform:rotate(-2deg)}
-.chair{aspect-ratio:1;background:rgba(255,255,255,.06);border:1.5px dashed rgba(197,160,89,.4);border-radius:18px;display:grid;place-items:center;position:relative;transition:all .5s cubic-bezier(.34,1.56,.64,1)}
-.chair svg{width:48%;stroke:rgba(255,255,255,.3);fill:none;stroke-width:2.2;transition:all .5s}
-.chair.empty{animation:emptyPulse 1.8s infinite}
-.chair.filled{background:var(--paper);border-style:solid;border-color:var(--gold);transform:rotate(3deg) scale(1.05)}
-.chair.filled svg{stroke:var(--green);fill:var(--gold)}
-.chair.filled::after{content:'تم الحجز ✓';position:absolute;bottom:-8px;font-size:.6rem;background:var(--miss);color:#fff;padding:2px 6px;border-radius:99px;font-weight:700}
-@keyframes emptyPulse{0%,100%{border-color:rgba(255,90,60,.3)}50%{border-color:var(--miss);background:rgba(255,90,60,.1)}}
-#cta .pill{font-size:1.3rem;padding:1.2rem 3rem;background:var(--miss);color:#fff;display:inline-block;border-radius:99px;font-weight:900;transition:transform .3s}
-#cta .pill:hover{transform:scale(1.05)}
+/* Interactive Simulator Dashboard */
+#demo-sim {
+  margin-top: 3.5rem; background: var(--panel-bg);
+  border: 1px solid var(--border); border-radius: 24px;
+  padding: 2rem; backdrop-filter: blur(12px);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+}
+.sim-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem; margin-top: 1.5rem; text-align: right;
+}
+.sim-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 1.2rem;
+}
+.sim-card h4 { font-size: 0.9rem; color: var(--ink-dim); margin-bottom: 0.5rem; }
+.sim-card .val { font-size: 1.8rem; font-family: 'Tajawal'; font-weight: 800; color: var(--teal); }
 
-footer{padding:2.5rem clamp(1.2rem,5vw,5rem);border-top:1px solid var(--gold);display:flex;flex-wrap:wrap;gap:1.5rem 3rem;justify-content:space-between;align-items:center;font-weight:500}
-#load{position:fixed;inset:0;z-index:200;background:#0A3D2E var(--pat);display:grid;place-items:center;color:var(--gold);text-align:center}
-#load .display{font-size:clamp(4rem,15vw,12rem)}#load small{display:block;margin-top:1rem;font-size:1.2rem;color:var(--paper);opacity:.8}
-/* vision etc - نفس كودك القديم مع تحسين الالوان */
-#vision{padding:9rem clamp(1.2rem,5vw,5rem) 6rem;background:var(--pat)}
-.v-head h2{font-size:clamp(3rem,8.5vw,7.5rem)}.v-head p{font-size:1.25rem;line-height:2;max-width:38rem;margin-top:1.5rem;opacity:.85}
-.dates{display:inline-flex;gap:1.2rem;flex-wrap:wrap;font-weight:500;border:1px solid var(--gold);border-radius:99px;padding:.5rem 1.4rem;background:var(--paper);margin-bottom:1.6rem}
-.v-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:2rem;margin-top:4rem;align-items:start}
-.mapbox{background:#0A3D2E;color:var(--paper);border:1px solid var(--gold);border-radius:32px;padding:1.5rem}
-#land{fill:none;stroke:rgba(255,255,255,.22);stroke-width:1.5;stroke-linejoin:round}
-.city{cursor:none;outline:none}.city text{fill:#fff;stroke:#0A3D2E;paint-order:stroke;stroke-width:5px;font-size:16px;font-weight:700}.city .d{fill:#fff;stroke:var(--gold)}.city.on .d{fill:var(--miss);stroke:#fff}
-.pillars{display:grid;gap:1.2rem}.pillars article{background:var(--green) var(--pat);color:var(--paper);border:1px solid var(--gold);border-radius:28px;padding:2rem}
-.pillars h3{font-family:Tajawal;font-weight:900;font-size:2.5rem;color:var(--gold);margin-bottom:.5rem}.pillars p{line-height:1.9;opacity:.92}
-.count-t{font-family:Tajawal;font-weight:800;font-size:clamp(1.8rem,4vw,3.4rem);margin-top:5rem}
-.count{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1.5rem}
-.count div{background:#0B2A3C;color:var(--paper);border-radius:26px;padding:1.6rem 1rem;text-align:center;border:1px solid var(--gold)}
-.count b{display:block;font-family:Tajawal;font-weight:900;font-size:clamp(2.4rem,6.5vw,5.5rem);line-height:1.1;color:var(--gold)}
-#metrics{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
-#metrics button{border:1px solid rgba(197,160,89,.7);background:transparent;color:var(--paper);border-radius:99px;padding:.45rem 1.2rem;font-weight:700}
-#metrics button[aria-pressed=true]{background:var(--gold);color:#0B2230}
+/* Story Section */
+#story { padding: 6rem 1.5rem; }
+.section-title { text-align: center; margin-bottom: 4rem; }
+.section-title h2 { font-size: clamp(2.2rem, 4vw, 3.5rem); margin-bottom: 1rem; }
+.section-title p { color: var(--ink-dim); font-size: 1.1rem; }
+
+.features-grid {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;
+}
+.feature-card {
+  background: var(--panel-bg); border: 1px solid var(--border);
+  border-radius: 24px; padding: 2.5rem; backdrop-filter: blur(10px);
+  transition: transform 0.3s, border-color 0.3s;
+}
+.feature-card:hover { transform: translateY(-5px); border-color: var(--teal); }
+.feature-card .icon {
+  width: 50px; height: 50px; background: var(--teal-glow);
+  border-radius: 12px; display: grid; place-items: center;
+  color: var(--teal); font-size: 1.5rem; margin-bottom: 1.5rem;
+}
+.feature-card h3 { font-size: 1.6rem; margin-bottom: 1rem; font-family: 'Tajawal'; }
+.feature-card p { color: var(--ink-dim); line-height: 1.8; }
+
+/* WhatsApp Chat Mockup */
+.chat-box {
+  background: rgba(7, 23, 34, 0.9); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.95rem;
+}
+.chat-msg {
+  padding: 0.6rem 1rem; border-radius: 12px; margin-bottom: 0.8rem; max-width: 85%;
+}
+.chat-msg.in { background: rgba(255,255,255,0.08); align-self: flex-start; }
+.chat-msg.out { background: var(--teal); color: #071722; font-weight: 600; margin-inline-start: auto; }
+
+/* Vision & ROI Calculator Section */
+#roi-calculator {
+  background: var(--paper); border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); padding: 6rem 1.5rem;
+}
+.calc-container {
+  max-width: 1000px; margin: 0 auto; background: var(--panel-bg);
+  border: 1px solid var(--border); border-radius: 28px; padding: 3rem 2rem;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
+}
+@media (max-width: 768px) { .calc-container { grid-template-columns: 1fr; } }
+.calc-controls label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+.calc-controls input[type=range] {
+  width: 100%; margin-bottom: 1.5rem; accent-color: var(--teal);
+}
+.calc-result {
+  background: rgba(0, 201, 167, 0.05); border: 1px solid var(--teal);
+  border-radius: 20px; padding: 2rem; text-align: center;
+}
+.calc-result h4 { font-size: 1.1rem; color: var(--ink-dim); margin-bottom: 0.5rem; }
+.calc-result .amount { font-size: 3rem; font-family: 'Tajawal'; font-weight: 900; color: var(--teal); }
+
+/* Trust & Compliance Section */
+#trust { padding: 6rem 1.5rem; text-align: center; }
+.badges-row {
+  display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-top: 2.5rem;
+}
+.trust-badge {
+  background: var(--panel-bg); border: 1px solid var(--border);
+  padding: 1.5rem 2.5rem; border-radius: 20px; font-weight: 700;
+  display: flex; align-items: center; gap: 1rem;
+}
+
+/* CTA Section */
+#cta {
+  padding: 8rem 1.5rem; text-align: center;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 90, 60, 0.1), transparent 70%);
+}
+#cta h2 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 1.5rem; }
+#cta p { color: var(--ink-dim); font-size: 1.2rem; max-width: 600px; margin: 0 auto 2.5rem; }
+
+/* Footer */
+footer {
+  padding: 3rem 1.5rem; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 1.5rem; max-width: 1200px; margin: 0 auto;
+  color: var(--ink-dim); font-size: 0.95rem;
+}
+footer nav { position: static; background: none; border: none; padding: 0; display: flex; gap: 1.5rem; }
 </style>
 </head>
 <body>
-<div id="cur"><svg viewBox="0 0 24 24"><path d="M7 10V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"/><path d="M5 10h14v8H5z"/><path d="M7 18v2M17 18v2"/></svg></div>
-<div id="load"><div><div class="display">حيّاك الله</div><small>ساهل، منصة العيادات الذكية في المملكة</small></div></div>
-<nav><a class="logo display" href="#hero">ساهل</a><a class="pill" href="#cta">احجز عرضاً</a></nav>
 
+<!-- Navigation -->
+<nav>
+  <a class="logo display" href="#">ساهل<span>.</span></a>
+  <a class="pill" href="#cta">احجز عرضاً توضيحياً</a>
+</nav>
+
+<!-- Hero Section -->
 <section id="hero">
-  <canvas id="sky"></canvas>
-  <canvas id="fx"></canvas>
-  <div id="score"><small>الحضور المُستعاد</small><b><span id="pct">0</span>٪</b><small><span id="cnt">0</span> موعد أُعيد</small></div>
-  <div class="hint">مرّر فوق المربعات المنقّطة لتستعيد المواعيد</div>
-  <div class="times"><button data-p="0">صباح</button><button data-p="1">ظهر</button><button data-p="2">مساء</button><button data-p="3">ليل</button></div>
-  <div class="hero-copy">
-    <span class="greet" id="greet"></span>
-    <h1 class="display" id="hl">خذ نفساً.</h1>
-    <p id="sub">الكراسي الفارغة لا تعني خسارة. ساهل يتنبأ بالغياب، يعيد حجز المواعيد، ويرد على مرضاك.</p>
-    <div class="row"><a class="cta" href="#cta">ابدأ الآن</a><button class="ghost" id="auto">دع ساهل يتولى</button><button class="ghost" id="breathe">تنفّس معنا</button></div>
+  <div class="hero-content">
+    <div class="badge">✦ منصة إدارة المواعيد الذكية الأولى للمملكة</div>
+    <h1 class="display">كل كرسي فارغ في عيادتك...<br>له <em>حلّ رقمي ذكي</em></h1>
+    <p>ساهل يتولى تأكيد المواعيد، استعادة الغائبين، والرد عبر الواتساب بذكاء اصطناعي يفهم مرضاك بلهجتهم المحلية وعلى مدار الساعة.</p>
+    
+    <div class="hero-actions">
+      <a class="pill" href="#cta">تأكيد المواعيد مجاناً</a>
+      <a class="cta-sec" href="#roi-calculator">احسب الأرباح المُستعادة</a>
+    </div>
+
+    <!-- Live Interactive Dashboard Demo -->
+    <div id="demo-sim">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700; color:var(--gold);">أداء العيادة المباشر اليوم</span>
+        <span style="font-size:0.85rem; color:var(--teal);">● تحديث حي</span>
+      </div>
+      <div class="sim-grid">
+        <div class="sim-card">
+          <h4>المواعيد المحجوزة</h4>
+          <div class="val" id="count-booked">142</div>
+        </div>
+        <div class="sim-card">
+          <h4>الغياب المتوقع (AI)</h4>
+          <div class="val" style="color:var(--miss)" id="count-missed">12</div>
+        </div>
+        <div class="sim-card">
+          <h4>تمت استعادتهم تلقائياً</h4>
+          <div class="val" id="count-recovered">10</div>
+        </div>
+        <div class="sim-card">
+          <h4>الإيرادات المستعادة</h4>
+          <div class="val" style="color:var(--gold)" id="val-roi">3,500 ر.س</div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
-<section id="story"><div id="track">
-  <div class="panel"><div><div class="display word fill">يردّ</div><h3>بوت واتساب يحجز بلهجة مرضاك</h3><p>يفهم "أبي موعد بكرة العصر" ويثبّت الحجز خلال ثوانٍ.</p></div><div class="viz"><div class="msg m-in">السلام عليكم، أبي موعد أسنان بكرة</div><div class="msg m-out">وعليكم السلام! المتاح ٤:١٥ م مع د. سارة. يناسبك؟</div><div class="msg m-in">أيوه يناسبني</div><div class="msg m-out">تم الحجز ✓</div></div></div>
-  <div class="panel"><div><div class="display word">يتوقّع</div><h3>يرى الغياب قبل حدوثه</h3><p>يقرأ تاريخ المريض والطقس والعطلات ويعرض الكرسي على قائمة الانتظار.</p></div><div class="viz"><div style="display:flex;gap:8px;align-items:end;height:200px"><span style="flex:1;background:#3FB6C4;height:40%;border-radius:8px"></span><span style="flex:1;background:var(--miss);height:80%;border-radius:8px"></span><span style="flex:1;background:#3FB6C4;height:60%;border-radius:8px"></span></div></div></div>
-  <div class="panel"><div><div class="display word fill">يحمي</div><h3>بياناتك داخل المملكة فقط</h3><p>متوافق مع PDPL، تشفير كامل وسجل تدقيق.</p></div><div class="viz"><svg viewBox="0 0 200 200" style="width:200px;margin:auto"><circle cx="100" cy="100" r="80" stroke="#C5A059" stroke-dasharray="4 8" fill="none"/><path d="M100 60l28 10v20c0 18-12 32-28 40-16-8-28-22-28-40V70z" stroke="#fff" stroke-width="3" fill="none"/></svg></div></div>
-</div><div id="bar"><i></i></div></section>
-
-<section id="vision">
-  <div class="v-head"><div class="dates"><span id="hijri"></span><span style="color:var(--gold)"> ✦ </span><span id="greg"></span></div><h2 class="display">عيادات اليوم.<br>مملكة الغد.</h2><p>ساهل يخدم أهداف رؤية 2030 في الرعاية الصحية.</p></div>
-  <div class="v-grid">
-    <div class="mapbox"><div id="metrics"><button data-k="req" aria-pressed="true">طلبات الحجز</button><button data-k="rec">مواعيد مُستردة</button></div><svg id="ksa" viewBox="0 0 900 680"><path id="land"/></svg></div>
-    <div class="pillars"><article><h3>مجتمع حيوي</h3><p>مريض يُحجز له ويُذكَّر به ويُخاطَب بلهجته.</p></article><article><h3>اقتصاد مزدهر</h3><p>كل موعد مُسترد دخل إضافي للعيادة.</p></article><article><h3>وطن طموح</h3><p>بيانات سيادية داخل المملكة.</p></article></div>
+<!-- Features Section -->
+<section id="story">
+  <div class="section-title">
+    <h2 class="display">منظومة رقمية متكاملة لعيادة لا تهدأ</h2>
+    <p>تم تصميم ساهل ليعمل كـ مساعد تنفيذي ذكي يقلل الهدر المالي ويرفع كفاءة التشغيل</p>
   </div>
-  <h3 class="count-t">الوقت المتبقي على 2030</h3><div class="count"><div><b id="cd">٠</b>يوم</div><div><b id="ch">٠</b>ساعة</div><div><b id="cm">٠</b>دقيقة</div><div><b id="cs">٠</b>ثانية</div></div>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="icon">💬</div>
+      <h3>حجز وإعادة جدولة بالواتساب</h3>
+      <p>مجيب ذكي يترجم رسائل المرضى بجميع اللهجات المحلية، يقترح الأوقات المناسبة، ويثبت الحجز في الموعد المتاح فوراً.</p>
+      <div class="chat-box">
+        <div class="chat-msg in">أبي موعد أسنان قريب عند الدكتورة سارة؟</div>
+        <div class="chat-msg out">أهلاً بك! متاح غداً الساعة 4:15 مساءً. هل تحب أثبته لك؟</div>
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="icon">🔮</div>
+      <h3>التنبؤ بالغياب وتفاديه</h3>
+      <p>خوارزميات خبيرة تقرأ سلوك المريض والمواعيد السابقة، وتتحقق من تأكيد الحضور قبل الموعد بـ 24 ساعة للتعامل مع الإلغاءات المباشرة.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="icon">🛡️</div>
+      <h3>سيادة البيانات والامتثال الكامل</h3>
+      <p>سيرفرات داخل المملكة العربية السعودية متوافقة كلياً مع نظام حماية البيانات الشخصية (PDPL) ومعايير وزارة الصحة.</p>
+    </div>
+  </div>
 </section>
 
-<!-- CTA الجديد النفسي -->
+<!-- Interactive ROI Calculator -->
+<section id="roi-calculator">
+  <div class="section-title">
+    <h2 class="display">احسب حجم الأرباح الضائعة في عيادتك</h2>
+    <p>اكتشف كم يمكنك استعادته شهرياً باستخدام أتمتة ساهل الذكية</p>
+  </div>
+
+  <div class="calc-container">
+    <div class="calc-controls">
+      <label for="range-appts">عدد المواعيد الأسبوعية: <span id="lbl-appts" style="color:var(--teal)">200</span></label>
+      <input type="range" id="range-appts" min="50" max="1000" value="200" step="10">
+
+      <label for="range-cost">متوسط قيمة الموعد (ر.س): <span id="lbl-cost" style="color:var(--teal)">350</span></label>
+      <input type="range" id="range-cost" min="100" max="1500" value="350" step="50">
+
+      <label for="range-rate">نسبة الغياب الحالية (%): <span id="lbl-rate" style="color:var(--miss)">20</span>%</label>
+      <input type="range" id="range-rate" min="5" max="40" value="20" step="1">
+    </div>
+
+    <div class="calc-result">
+      <h4>العائد الشهري المتوقع استعادته</h4>
+      <div class="amount" id="res-amount">19,600 ر.س</div>
+      <p style="font-size:0.9rem; color:var(--ink-dim); margin-top:1rem;">بناءً على استعادة 70% من المواعيد الملغاة تلقائياً.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Trust & Vision -->
+<section id="trust">
+  <h2 class="display">متوافق وموثوق مع التوجهات الوطنية</h2>
+  <div class="badges-row">
+    <div class="trust-badge">🇸🇦 بيانات داخل المملكة</div>
+    <div class="trust-badge">🔒 نظام PDPL للخصوصية</div>
+    <div class="trust-badge">🏥 معايير الصحة الرقمية 2030</div>
+  </div>
+</section>
+
+<!-- Call to Action -->
 <section id="cta">
-  <div class="cta-grid">
-    <div class="cta-text">
-      <h2 class="display">كل دقيقة..<span>كرسي يفرغ.</span></h2>
-      <p>٧ كراسي فارغة اليوم = ٢١٠ ريال خسارة. ساهل يراقب الغياب ويملأ الكرسي قبل أن يبرد، تلقائياً عبر واتساب.</p>
-      <a class="pill" id="mainCta" href="mailto:hello@sahel.example">املأ كراسيي الآن ←</a>
-      <div style="margin-top:1rem;font-size:.9rem;opacity:.6">✓ بدون عقد · ✓ متوافق مع PDPL · ✓ إعداد خلال ٢٤ ساعة</div>
-    </div>
-    <div class="cta-chairs" id="chairsGrid">
-      <!-- سيتم توليدها بـ JS -->
-    </div>
-  </div>
+  <h2 class="display">جاهز لملء كراسيك الفارغة؟</h2>
+  <p>انضم إلى العيادات والمراكز الطبية التي تبنت الأتمتة واستعادت دخلها المفقود.</p>
+  <a class="pill" href="mailto:demo@sahel.sa" style="font-size:1.2rem; padding: 1rem 3rem;">تواصل مع فريق ساهل</a>
 </section>
 
-<footer><b class="display" style="font-size:1.8rem">ساهل</b><small>صُنع بفخر في المملكة · © 2026</small></footer>
+<!-- Footer -->
+<footer>
+  <div class="display" style="font-size:1.5rem; color:#fff;">ساهل.</div>
+  <nav>
+    <a href="#">سياسة الخصوصية</a>
+    <a href="#">شروط الخدمة</a>
+    <a href="#">الامتثال للبيانات</a>
+  </nav>
+
+  <div>© 2026 ساهل - كافة الحقوق محفوظة.</div>
+</footer>
 
 <script>
-// AUDIO + CURSOR + HERO LOGIC (نفس فكرتك مع تحسين)
-let audioCtx; function playChime(){if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.setValueAtTime(523.25,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(1046.5,audioCtx.currentTime+.1);g.gain.setValueAtTime(.12,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.8);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.8);}
-const cur=document.getElementById('cur'); const m={x:-100,y:-100,cx:-100,cy:-100};
-addEventListener('pointermove',e=>{m.x=e.clientX;m.y=e.clientY});
-document.querySelectorAll('a,button').forEach(el=>{el.addEventListener('pointerenter',()=>cur.classList.add('hot'));el.addEventListener('pointerleave',()=>cur.classList.remove('hot'))});
-gsap.ticker.add(()=>{m.cx+=(m.x-m.cx)*.2;m.cy+=(m.y-m.cy)*.2;cur.style.transform=`translate(${m.cx}px,${m.cy}px)`});
+// Initialize Lenis Smooth Scroll
+const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+requestAnimationFrame(raf);
 
-gsap.registerPlugin(ScrollTrigger);
-const lenis=new Lenis({lerp:.09}); lenis.on('scroll',ScrollTrigger.update); gsap.ticker.add(t=>lenis.raf(t*1000));
+// Interactive ROI Calculator Logic
+const rangeAppts = document.getElementById('range-appts');
+const rangeCost = document.getElementById('range-cost');
+const rangeRate = document.getElementById('range-rate');
 
-// loader
-const loader=document.getElementById('load'); gsap.timeline().from('#load .display',{opacity:0,y:40,duration:1,ease:'expo.out'}).to(loader,{yPercent:-100,duration:1,ease:'expo.inOut',delay:.5,onComplete:()=>loader.remove()});
+const lblAppts = document.getElementById('lbl-appts');
+const lblCost = document.getElementById('lbl-cost');
+const lblRate = document.getElementById('lbl-rate');
+const resAmount = document.getElementById('res-amount');
 
-// --- chairs psychology ---
-const grid=document.getElementById('chairsGrid');
-const chairSVG=`<svg viewBox="0 0 24 24"><path d="M7 10V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"/><path d="M5 10h14v8H5z"/></svg>`;
-for(let i=0;i<12;i++){
-  const d=document.createElement('div'); d.className='chair '+(i<7?'empty':'filled'); d.innerHTML=chairSVG; grid.appendChild(d);
+function updateROI() {
+  const appts = parseInt(rangeAppts.value);
+  const cost = parseInt(rangeCost.value);
+  const rate = parseInt(rangeRate.value) / 100;
+
+  lblAppts.textContent = appts;
+  lblCost.textContent = cost;
+  lblRate.textContent = Math.round(rate * 100);
+
+  // Monthly calculation: (Appts * 4 weeks) * Rate * Cost * 70% Recovery Rate
+  const monthlyLost = (appts * 4) * rate * cost;
+  const recovered = Math.round(monthlyLost * 0.70);
+
+  resAmount.textContent = recovered.toLocaleString('ar-SA') + ' ر.س';
 }
-const mainCta=document.getElementById('mainCta');
-mainCta.addEventListener('pointerenter',()=>{
-  const empties=[...document.querySelectorAll('.chair.empty')];
-  empties.forEach((c,i)=>{
-    setTimeout(()=>{
-      c.classList.remove('empty'); c.classList.add('filled');
-      playChime();
-      gsap.fromTo(c,{scale:.6},{scale:1.05,duration:.6,ease:'back.out(2.5)'});
-    },i*90);
-  });
-});
-mainCta.addEventListener('pointerleave',()=>{
-  setTimeout(()=>{
-    [...document.querySelectorAll('.chair.filled')].slice(0,7).forEach(c=>{c.classList.remove('filled');c.classList.add('empty')});
-  },800);
-});
 
-// hero canvas (مختصر - نفس منطقك)
-const sky=document.getElementById('sky'), fx=document.getElementById('fx');
-const sctx=sky.getContext('2d'), fctx=fx.getContext('2d');
-function resize(){[sky,fx].forEach(c=>{c.width=c.clientWidth*devicePixelRatio;c.height=c.clientHeight*devicePixelRatio});}
-resize(); addEventListener('resize',resize);
-// بسيط: رسم سحابة متحركة
-let t=0; gsap.ticker.add(()=>{t+=.01; if(sky.width===0) return;
-  sctx.clearRect(0,0,sky.width,sky.height);
-  sctx.fillStyle='rgba(197,160,89,.08)'; sctx.beginPath(); sctx.arc(sky.width*.5+Math.sin(t)*100,sky.height*.4,220,0,Math.PI*2); sctx.fill();
-});
-
-// story horizontal
-const track=document.getElementById('track');
-gsap.to(track,{x:()=>-(track.scrollWidth-innerWidth),ease:'none',scrollTrigger:{trigger:'#story',start:'top top',end:()=>'+='+(track.scrollWidth-innerWidth),pin:true,scrub:1,onUpdate:s=>document.querySelector('#bar i').style.width=s.progress*100+'%'}});
-
-// hijri
-document.getElementById('hijri').textContent=new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',{dateStyle:'full'}).format(new Date());
-document.getElementById('greg').textContent=new Intl.DateTimeFormat('ar-SA-u-ca-gregory',{dateStyle:'long'}).format(new Date());
-const target=new Date('2030-12-31T23:59:59+03:00');
-const ar=n=>Math.floor(n).toLocaleString('ar-EG');
-function tick(){let d=Math.max(0,target-new Date())/1000;const days=d/86400;d%=86400;document.getElementById('cd').textContent=ar(days);document.getElementById('ch').textContent=ar(d/3600);document.getElementById('cm').textContent=ar((d%3600)/60);document.getElementById('cs').textContent=ar(d%60);}tick();setInterval(tick,1000);
-
-// fusion logic مبسط (غياب->حضور)
-let restored=0; const pctEl=document.getElementById('pct'), cntEl=document.getElementById('cnt');
-fx.addEventListener('pointermove',e=>{if(Math.random()<.08){restored++; cntEl.textContent=ar(restored); pctEl.textContent=ar(Math.min(100,restored*2)); playChime(); if(restored===50){document.getElementById('hl').textContent='لقد أنقذت عيادتك اليوم!'}}});
+[rangeAppts, rangeCost, rangeRate].forEach(input => input.addEventListener('input', updateROI));
+updateROI();
 </script>
 </body>
 </html>
