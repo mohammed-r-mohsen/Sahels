@@ -1,75 +1,86 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سياسة الخصوصية | ساهل</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --saudi-green: #006C35; --gold: #D4AF37; --sand: #F9F6F0; --dark: #1A1A1A; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
-        body { background-color: var(--sand); color: var(--dark); overflow-x: hidden; display: flex; flex-direction: column; min-height: 100vh; }
-        .bg-animation { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; background-image: radial-gradient(var(--gold) 1px, transparent 1px), radial-gradient(var(--saudi-green) 1px, transparent 1px); background-size: 50px 50px; background-position: 0 0, 25px 25px; opacity: 0.07; animation: moveBg 60s linear infinite; }
-        @keyframes moveBg { from { background-position: 0 0, 25px 25px; } to { background-position: 500px 500px, 525px 525px; } }
+<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سياسة الخصوصية | ساهل</title><meta name="description" content="كيف تعالج ساهل البيانات الشخصية وفق نظام حماية البيانات الشخصية في المملكة العربية السعودية."><meta name="theme-color" content="#0B2A3C">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Tajawal:wght@800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F3EE;--ink:#0B2230;--gold:#C5A059;--deep:#0B2A3C;--teal:#0B6B73;--miss:#FF5A3C;--paper:#FFFDFA;--pat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 4l7 15 15-7-7 15 15 7-15 7 7 15-15-7-7 15-7-15-15 7 7-15-15-7 15-7-7-15 15 7z' fill='none' stroke='%23C5A059' stroke-opacity='.28'/%3E%3C/svg%3E")}
+*{box-sizing:border-box;margin:0}html{scroll-behavior:smooth;scroll-padding-top:6rem}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--ink);line-height:2;font-size:1.05rem}
+a{color:var(--teal)}:focus-visible{outline:3px solid var(--miss);outline-offset:3px}
+.d{font-family:'Tajawal',sans-serif;font-weight:900;line-height:1.15}
+header{position:sticky;top:0;z-index:20;background:rgba(247,243,238,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(197,160,89,.5);display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.8rem clamp(1rem,4vw,3rem);flex-wrap:wrap}
+.logo{font-size:1.9rem;text-decoration:none;color:var(--ink)}header nav{display:flex;gap:1.4rem;flex-wrap:wrap;font-weight:500}header nav a{text-decoration:none;color:var(--ink);padding:.2rem 0;border-bottom:2px solid transparent}header nav a[aria-current=page]{border-color:var(--gold);font-weight:700}
+.back{background:var(--deep);color:#fff;text-decoration:none;padding:.5rem 1.3rem;border-radius:99px;font-weight:700;font-size:.95rem}
+.top{background:var(--deep) var(--pat);color:#fff;padding:4.5rem clamp(1rem,5vw,5rem) 3.5rem}
+.top h1{font-size:clamp(2.6rem,7vw,5.2rem);color:var(--gold)}.top p{max-width:42rem;margin-top:1rem;opacity:.88;font-size:1.15rem}
+.chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.5rem}.chips span{border:1px solid var(--gold);border-radius:99px;padding:.15rem 1rem;font-size:.9rem}
+.draft{background:#FFF3D6;border-bottom:1px solid var(--gold);padding:.8rem clamp(1rem,5vw,5rem);font-size:.95rem;font-weight:500}
+.wrap{display:grid;grid-template-columns:250px minmax(0,780px);gap:3rem;padding:3rem clamp(1rem,5vw,5rem) 5rem;justify-content:center}
+.toc{position:sticky;top:6rem;align-self:start;font-size:.95rem}.toc b{font-family:Tajawal;font-size:1.2rem}.toc ol{list-style:none;padding:0;margin-top:.6rem;display:grid;gap:.1rem}
+.toc a{display:block;text-decoration:none;color:var(--ink);padding:.25rem .8rem;border-inline-start:3px solid rgba(197,160,89,.4);opacity:.75}.toc a.on{border-color:var(--miss);opacity:1;font-weight:700}
+article{counter-reset:s}article h2{counter-increment:s;font-family:Tajawal;font-weight:800;font-size:1.9rem;line-height:1.4;margin:3rem 0 .8rem;color:var(--deep)}article h2:first-child{margin-top:0}
+article h2:before{content:counter(s,arabic-indic) ". ";color:var(--gold)}article p{margin:.7rem 0}article ul{padding-inline-start:1.4rem;margin:.7rem 0}article li{margin:.3rem 0}
+.note{background:var(--paper);border:1px solid var(--gold);border-radius:18px;padding:1rem 1.3rem;margin:1.2rem 0}
+.tw{overflow-x:auto;margin:1.2rem 0;border:1px solid rgba(197,160,89,.6);border-radius:16px;background:var(--paper)}table{border-collapse:collapse;width:100%;min-width:560px;font-size:.95rem}th,td{padding:.7rem 1rem;text-align:start;border-bottom:1px solid rgba(197,160,89,.35);vertical-align:top}th{background:rgba(197,160,89,.18)}
+details{background:var(--paper);border:1px solid rgba(197,160,89,.6);border-radius:16px;padding:.8rem 1.2rem;margin:.7rem 0}summary{font-weight:700;cursor:pointer}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:1.2rem 0}.steps div{background:var(--paper);border:1px solid var(--gold);border-radius:20px;padding:1.2rem}.steps b{font-family:Tajawal;font-size:2.4rem;color:var(--miss);display:block;line-height:1}
+form.f{display:grid;gap:1rem;background:var(--paper);border:1px solid var(--gold);border-radius:24px;padding:1.6rem;margin:1.2rem 0}
+.f label{font-weight:700;display:block;margin-bottom:.3rem}.f input,.f select,.f textarea{width:100%;padding:.8rem 1rem;border-radius:14px;border:1px solid #d9cfc0;background:#fff;font:inherit}.f textarea{min-height:110px}
+.f .r{display:flex;gap:1.2rem;flex-wrap:wrap}.f .r label{font-weight:500;display:flex;gap:.4rem;align-items:center;margin:0}.f .r input{width:auto}
+.f .chk{display:flex;gap:.6rem;align-items:flex-start;font-weight:500}.f .chk input{width:auto;margin-top:.6rem}
+.btn{background:var(--miss);color:#fff;border:0;border-radius:99px;padding:1rem 2rem;font:inherit;font-weight:700;font-size:1.1rem;cursor:pointer;justify-self:start}
+#ok{display:none;background:var(--deep);color:#fff;border-radius:24px;padding:1.6rem;border:1px solid var(--gold)}#ok b.ref{font-family:Tajawal;font-size:2rem;color:var(--gold);display:block}
+footer{border-top:1px solid var(--gold);padding:2rem clamp(1rem,5vw,5rem);display:flex;flex-wrap:wrap;gap:1rem 2.5rem;justify-content:space-between;align-items:center;font-weight:500}footer nav{display:flex;gap:1.6rem;flex-wrap:wrap}footer a{color:var(--ink)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.toc{display:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head><body>
+<header><a class="logo d" href="index.html">ساهل</a>
+<nav aria-label="الصفحات القانونية"><a href="privacy.html" aria-current="page">سياسة الخصوصية</a><a href="terms.html" >شروط الاستخدام</a><a href="data-deletion.html" >حذف البيانات</a></nav>
+<a class="back" href="index.html">العودة للرئيسية</a></header>
+<section class="top"><h1 class="d">سياسة الخصوصية</h1><p>نشرح هنا ما نجمعه من بيانات، ولماذا، وكيف نحميه، وما هي حقوقك.</p><div class="chips"><span>آخر تحديث: ١٨ أكتوبر ٢٠٢٦</span><span>الإصدار ١٫٠ (مسودة)</span></div></section>
+<div class="draft">⚠ مسودة تمهيدية لا تُعدّ استشارة قانونية. تحتاج مراجعة مستشار قانوني مرخّص في المملكة، وتعبئة البيانات بين [ ] قبل النشر.</div>
+<div class="wrap"><aside class="toc" aria-label="المحتويات"><b>المحتويات</b><ol id="toc"></ol></aside>
+<article>
+<h2>من نحن ودورنا في معالجة البيانات</h2>
+<p>ساهل ([اسم الشركة الرسمي]، سجل تجاري رقم [ ]، العنوان: [ ]) منصة برمجية تخدم العيادات الطبية: بوت واتساب للحجز، وتوقّع للغياب بالذكاء الاصطناعي، وأتمتة للمواعيد. تحكم هذه السياسة معالجة البيانات الشخصية وفق <b>نظام حماية البيانات الشخصية</b> في المملكة العربية السعودية ولائحته التنفيذية.</p>
+<div class="note"><b>دورنا يختلف بحسب نوع البيانات:</b><ul><li><b>بيانات المرضى:</b> العيادة هي المتحكّمة بالبيانات، وساهل جهة معالجة تعمل بتعليمات العيادة.</li><li><b>بيانات زوّار الموقع ومستخدمي لوحة التحكم من العيادات:</b> ساهل هي المتحكّمة بالبيانات.</li></ul></div>
+<h2>البيانات التي نعالجها</h2>
+<div class="tw"><table><thead><tr><th>الفئة</th><th>أمثلة</th><th>الغرض</th></tr></thead><tbody>
+<tr><td>زوّار الموقع وطالبو العروض</td><td>اسم العيادة، المدينة، رقم الجوال، البريد</td><td>التواصل وتقديم العرض التجريبي</td></tr>
+<tr><td>مستخدمو العيادة</td><td>الاسم، الدور الوظيفي، البريد، رقم الجوال، سجلات الدخول</td><td>تشغيل الحساب وحمايته</td></tr>
+<tr><td>مرضى العيادة (بتعليمات العيادة)</td><td>الاسم، رقم الجوال، موعد الزيارة، محتوى محادثات الحجز، سجل الحضور والغياب، وقد تتضمن بيانات صحية بحسب ما تدخله العيادة</td><td>الحجز والتذكير وتقليل الغياب</td></tr>
+<tr><td>بيانات تقنية</td><td>عنوان IP، نوع الجهاز والمتصفح، سجلات الاستخدام</td><td>الأمان وتحسين الأداء</td></tr></tbody></table></div>
+<p>نجمع الحد الأدنى اللازم لكل غرض، ولا نبيع البيانات الشخصية ولا نستخدمها للإعلانات.</p>
+<h2>أسس المعالجة وأغراضها</h2>
+<p>نعالج البيانات استناداً إلى موافقة صاحبها، أو لتنفيذ العقد مع العيادة، أو للالتزام بالأنظمة، أو لمصلحة مشروعة لا تضر بحقوق الأفراد، وذلك وفق ما يجيزه النظام. نستخدمها لتشغيل الخدمة، وإرسال تأكيدات الحجز والتذكيرات، وتوقّع الغياب، وتأمين المنصة، والرد على الاستفسارات.</p>
+<h2>الذكاء الاصطناعي وتوقّع الغياب</h2>
+<p>يحسب نموذج التوقّع احتمال غياب كل موعد اعتماداً على عوامل مثل سجل الحضور السابق ووقت الموعد واليوم. ونلتزم بما يلي:</p>
+<ul><li>التوقّع تقدير إحصائي لدعم الإدارة، ولا يُستخدم لرفض تقديم رعاية صحية لأي مريض.</li><li>القرار النهائي بيد موظفي العيادة، وتتوفر آلية لمراجعة نتيجة التوقّع.</li><li>لا نستخدم بيانات المرضى لتدريب نماذج لحساب جهات أخرى.</li></ul>
+<h2>رسائل واتساب</h2>
+<p>تُرسل الرسائل عبر منصة واتساب للأعمال التابعة لشركة Meta، ويخضع تشغيلها أيضاً لشروط تلك المنصة. نوفّر للمريض وسيلة لإيقاف الرسائل في أي وقت، وتقع على العيادة مسؤولية الحصول على موافقة المريض قبل مراسلته.</p>
+<h2>مشاركة البيانات والمعالجون الفرعيون</h2>
+<p>لا نشارك البيانات إلا مع مزوّدين يساعدوننا في تشغيل الخدمة (الاستضافة السحابية، قناة واتساب، البريد) بموجب عقود تلزمهم بالسرية والأمان، أو عندما تطلب جهة رسمية مختصة ذلك نظاماً. قائمة المعالجين الفرعيين الحالية: [تُدرج هنا].</p>
+<h2>مكان التخزين ونقل البيانات</h2>
+<p>نخزّن بيانات المرضى داخل المملكة العربية السعودية. ولا ننقل بيانات شخصية خارجها إلا وفق الضوابط التي يقررها النظام ولائحته، وبعد توافر الضمانات اللازمة. [يُؤكَّد موقع الاستضافة الفعلي قبل النشر].</p>
+<h2>مدة الاحتفاظ</h2>
+<p>نحتفظ بالبيانات طوال مدة العقد ووفق تعليمات العيادة، وللمدد التي تفرضها الأنظمة الصحية والمالية. بعد انتهاء العقد نتيح للعيادة تصدير بياناتها لمدة [30] يوماً، ثم نحذفها أو نجعلها مجهولة الهوية خلال [90] يوماً، ما لم يُلزمنا نظام بغير ذلك.</p>
+<h2>حقوقك</h2>
+<p>يحق لك وفق النظام:</p>
+<ul><li>العلم بكيفية معالجة بياناتك ومسوّغاتها.</li><li>الوصول إلى بياناتك والحصول على نسخة منها.</li><li>طلب تصحيح البيانات غير الدقيقة أو استكمالها.</li><li>طلب إتلاف بياناتك عند انتفاء الحاجة إليها.</li><li>سحب موافقتك في أي وقت دون أن يؤثر ذلك على ما سبق من معالجة.</li></ul>
+<p>لممارسة أي حق استخدم <a href="data-deletion.html">نموذج الطلبات</a>. نلتزم بالرد خلال [30] يوماً. وإن لم تقتنع بالرد فلك التقدّم بشكوى إلى الجهة المختصة، وهي الهيئة السعودية للبيانات والذكاء الاصطناعي (سدايا).</p>
+<h2>أمن المعلومات</h2>
+<p>نطبّق تشفيراً للبيانات أثناء النقل والتخزين، وضوابط وصول بالصلاحيات، وسجلات تدقيق، وفصلاً بين بيانات كل عيادة. وفي حال وقوع حادث تسرّب يحتمل أن يضر بالأفراد نبلّغ الجهات المختصة والأطراف المتأثرة ضمن المدد التي يحددها النظام.</p>
+<h2>بيانات الأطفال</h2>
+<p>تُدخل العيادات بيانات المرضى القاصرين من خلال وليّ الأمر. ولا نوجّه خدماتنا التسويقية إلى من هم دون الثامنة عشرة.</p>
+<h2>ملفات تعريف الارتباط والتخزين المحلي</h2>
+<p>يستخدم الموقع تخزيناً تقنياً ضرورياً لعمله. ولا نفعّل أدوات التحليل غير الضرورية إلا بموافقتك. [تُحدَّث هذه الفقرة بحسب الأدوات المستخدمة فعلياً].</p>
+<h2>تحديث السياسة والتواصل</h2>
+<p>قد نحدّث هذه السياسة، ونعلن عن التغييرات الجوهرية قبل سريانها. للتواصل مع مسؤول حماية البيانات: <a href="mailto:privacy@sahel.example">privacy@sahel.example</a> [يُستبدل بالبريد الفعلي].</p></article></div>
+<footer><b class="d" style="font-size:1.6rem">ساهل</b><nav aria-label="روابط قانونية"><a href="privacy.html">سياسة الخصوصية</a><a href="terms.html">شروط الاستخدام</a><a href="data-deletion.html">حذف البيانات</a></nav><small>صُنع بفخر في المملكة العربية السعودية · © 2026 ساهل</small></footer>
+<script>
+const hs=[...document.querySelectorAll('article h2')],toc=document.getElementById('toc');
+hs.forEach((h,i)=>{h.id='s'+(i+1);const li=document.createElement('li');li.innerHTML='<a href="#s'+(i+1)+'">'+h.textContent+'</a>';toc.appendChild(li)});
+const links=[...toc.querySelectorAll('a')];
+if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id))}}),{rootMargin:'-15% 0px -75% 0px'});hs.forEach(h=>io.observe(h));}
 
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; background: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .logo { font-size: 28px; font-weight: 800; color: var(--saudi-green); display: flex; align-items: center; gap: 10px; }
-        .logo span { color: var(--gold); }
-        .nav-links a { text-decoration: none; color: var(--dark); font-weight: 700; margin-right: 30px; transition: 0.3s; }
-        .nav-links a:hover { color: var(--saudi-green); }
-
-        .content-container { max-width: 900px; margin: 60px auto; padding: 50px 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 10; }
-        h1 { color: var(--saudi-green); font-size: 2.5rem; margin-bottom: 30px; text-align: center; border-bottom: 2px solid var(--sand); padding-bottom: 20px; }
-        h2 { color: var(--saudi-green); font-size: 1.5rem; margin-top: 30px; margin-bottom: 15px; }
-        p, li { font-size: 1.1rem; line-height: 1.9; color: #444; margin-bottom: 15px; text-align: justify; }
-        ul { margin-right: 25px; margin-bottom: 20px; }
-
-        footer { background: var(--dark); color: white; padding: 40px 5%; text-align: center; margin-top: auto; }
-        .footer-links { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-        .footer-links a { color: #aaa; text-decoration: none; font-size: 0.95rem; transition: 0.3s; }
-        .footer-links a:hover { color: var(--gold); }
-        .footer-note { font-size: 0.85rem; color: #777; margin-top: 20px; line-height: 1.6; }
-    </style>
-</head>
-<body>
-    <div class="bg-animation"></div>
-    <nav>
-        <div class="logo">ساهل <span>| Sahels</span></div>
-        <div class="nav-links">
-            <a href="/web/index.html">الرئيسية</a>
-            <a href="/web/about.html">من نحن</a>
-            <a href="/web/contact.html">تواصل معنا</a>
-        </div>
-    </nav>
-
-    <div class="content-container">
-        <h1>سياسة الخصوصية</h1>
-        <p>نحن في <strong>شركة ساهل للحلول التقنية</strong> نولي أهمية قصوى لخصوصية بياناتك وبيانات مرضاك. تم إعداد هذه السياسة لتوضيح كيفية جمع واستخدام وحماية المعلومات، بما يتوافق تماماً مع <strong>نظام حماية البيانات الشخصية (PDPL)</strong> في المملكة العربية السعودية.</p>
-
-        <h2>1. البيانات التي نجمعها</h2>
-        <p>نقوم بجمع البيانات الضرورية لتقديم الخدمة، والتي تشمل: الاسم، رقم الجوال، وتاريخ الحجز. لا نقوم بجمع أي بيانات طبية تفصيلية (مثل التشخيص أو الأشعة) داخل أنظمة البوت.</p>
-
-        <h2>2. الغرض من جمع البيانات</h2>
-        <p>تُستخدم البيانات حصرياً لإدارة حجوزات المرضى، وإرسال التذكيرات، وتحسين جودة الخدمة داخل العيادة. لا يتم استخدامها لأي أغراض تسويقية خارجية دون موافقة صريحة.</p>
-
-        <h2>3. توطين البيانات (Data Localization)</h2>
-        <p>التزاماً بالأنظمة السعودية، يتم استضافة ومعالجة وتخزين جميع البيانات داخل <strong>مراكز بيانات في المملكة العربية السعودية</strong>. لا يتم نقل أي بيانات خارج المملكة.</p>
-
-        <h2>4. حماية البيانات</h2>
-        <p>نستخدم تشفيراً متقدماً (AES-256) لتخزين البيانات، وتشفيراً أثناء النقل (TLS 1.3). كما نطبق سياسات صارمة للوصول إلى البيانات لضمان عدم اطلاع أي شخص غير مصرح له عليها.</p>
-
-        <h2>5. حقوقك</h2>
-        <p>وفقاً لنظام PDPL، يحق لك الوصول إلى بياناتك، تصحيحها، أو طلب حذفها بالكامل في أي وقت. يمكنك القيام بذلك عبر التواصل معنا أو من خلال صفحة "حذف البيانات".</p>
-    </div>
-
-    <footer>
-        <div class="footer-links">
-            <a href="web/privacy">سياسة الخصوصية</a>
-            <a href="web/terms">شروط الخدمة</a>
-            <a href="web/data-deletion">حذف البيانات</a>
-        </div>
-        <p>جميع البيانات محفوظة ومعالجة داخل المملكة العربية السعودية وفقاً لنظام حماية البيانات الشخصية (PDPL).</p>
-        <p class="footer-note">© 2026 شركة ساهل للحلول التقنية. جميع الحقوق محفوظة.</p>
-    </footer>
-</body>
-</html>
+</script></body></html>

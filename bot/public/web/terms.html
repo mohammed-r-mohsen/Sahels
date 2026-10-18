@@ -1,75 +1,79 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شروط الخدمة | ساهل</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --saudi-green: #006C35; --gold: #D4AF37; --sand: #F9F6F0; --dark: #1A1A1A; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
-        body { background-color: var(--sand); color: var(--dark); overflow-x: hidden; display: flex; flex-direction: column; min-height: 100vh; }
-        .bg-animation { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; background-image: radial-gradient(var(--gold) 1px, transparent 1px), radial-gradient(var(--saudi-green) 1px, transparent 1px); background-size: 50px 50px; background-position: 0 0, 25px 25px; opacity: 0.07; animation: moveBg 60s linear infinite; }
-        @keyframes moveBg { from { background-position: 0 0, 25px 25px; } to { background-position: 500px 500px, 525px 525px; } }
+<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>شروط الاستخدام | ساهل</title><meta name="description" content="الشروط التي تحكم استخدام منصة ساهل للعيادات الطبية في المملكة العربية السعودية."><meta name="theme-color" content="#0B2A3C">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Tajawal:wght@800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F3EE;--ink:#0B2230;--gold:#C5A059;--deep:#0B2A3C;--teal:#0B6B73;--miss:#FF5A3C;--paper:#FFFDFA;--pat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 4l7 15 15-7-7 15 15 7-15 7 7 15-15-7-7 15-7-15-15 7 7-15-15-7 15-7-7-15 15 7z' fill='none' stroke='%23C5A059' stroke-opacity='.28'/%3E%3C/svg%3E")}
+*{box-sizing:border-box;margin:0}html{scroll-behavior:smooth;scroll-padding-top:6rem}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--ink);line-height:2;font-size:1.05rem}
+a{color:var(--teal)}:focus-visible{outline:3px solid var(--miss);outline-offset:3px}
+.d{font-family:'Tajawal',sans-serif;font-weight:900;line-height:1.15}
+header{position:sticky;top:0;z-index:20;background:rgba(247,243,238,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(197,160,89,.5);display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.8rem clamp(1rem,4vw,3rem);flex-wrap:wrap}
+.logo{font-size:1.9rem;text-decoration:none;color:var(--ink)}header nav{display:flex;gap:1.4rem;flex-wrap:wrap;font-weight:500}header nav a{text-decoration:none;color:var(--ink);padding:.2rem 0;border-bottom:2px solid transparent}header nav a[aria-current=page]{border-color:var(--gold);font-weight:700}
+.back{background:var(--deep);color:#fff;text-decoration:none;padding:.5rem 1.3rem;border-radius:99px;font-weight:700;font-size:.95rem}
+.top{background:var(--deep) var(--pat);color:#fff;padding:4.5rem clamp(1rem,5vw,5rem) 3.5rem}
+.top h1{font-size:clamp(2.6rem,7vw,5.2rem);color:var(--gold)}.top p{max-width:42rem;margin-top:1rem;opacity:.88;font-size:1.15rem}
+.chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.5rem}.chips span{border:1px solid var(--gold);border-radius:99px;padding:.15rem 1rem;font-size:.9rem}
+.draft{background:#FFF3D6;border-bottom:1px solid var(--gold);padding:.8rem clamp(1rem,5vw,5rem);font-size:.95rem;font-weight:500}
+.wrap{display:grid;grid-template-columns:250px minmax(0,780px);gap:3rem;padding:3rem clamp(1rem,5vw,5rem) 5rem;justify-content:center}
+.toc{position:sticky;top:6rem;align-self:start;font-size:.95rem}.toc b{font-family:Tajawal;font-size:1.2rem}.toc ol{list-style:none;padding:0;margin-top:.6rem;display:grid;gap:.1rem}
+.toc a{display:block;text-decoration:none;color:var(--ink);padding:.25rem .8rem;border-inline-start:3px solid rgba(197,160,89,.4);opacity:.75}.toc a.on{border-color:var(--miss);opacity:1;font-weight:700}
+article{counter-reset:s}article h2{counter-increment:s;font-family:Tajawal;font-weight:800;font-size:1.9rem;line-height:1.4;margin:3rem 0 .8rem;color:var(--deep)}article h2:first-child{margin-top:0}
+article h2:before{content:counter(s,arabic-indic) ". ";color:var(--gold)}article p{margin:.7rem 0}article ul{padding-inline-start:1.4rem;margin:.7rem 0}article li{margin:.3rem 0}
+.note{background:var(--paper);border:1px solid var(--gold);border-radius:18px;padding:1rem 1.3rem;margin:1.2rem 0}
+.tw{overflow-x:auto;margin:1.2rem 0;border:1px solid rgba(197,160,89,.6);border-radius:16px;background:var(--paper)}table{border-collapse:collapse;width:100%;min-width:560px;font-size:.95rem}th,td{padding:.7rem 1rem;text-align:start;border-bottom:1px solid rgba(197,160,89,.35);vertical-align:top}th{background:rgba(197,160,89,.18)}
+details{background:var(--paper);border:1px solid rgba(197,160,89,.6);border-radius:16px;padding:.8rem 1.2rem;margin:.7rem 0}summary{font-weight:700;cursor:pointer}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:1.2rem 0}.steps div{background:var(--paper);border:1px solid var(--gold);border-radius:20px;padding:1.2rem}.steps b{font-family:Tajawal;font-size:2.4rem;color:var(--miss);display:block;line-height:1}
+form.f{display:grid;gap:1rem;background:var(--paper);border:1px solid var(--gold);border-radius:24px;padding:1.6rem;margin:1.2rem 0}
+.f label{font-weight:700;display:block;margin-bottom:.3rem}.f input,.f select,.f textarea{width:100%;padding:.8rem 1rem;border-radius:14px;border:1px solid #d9cfc0;background:#fff;font:inherit}.f textarea{min-height:110px}
+.f .r{display:flex;gap:1.2rem;flex-wrap:wrap}.f .r label{font-weight:500;display:flex;gap:.4rem;align-items:center;margin:0}.f .r input{width:auto}
+.f .chk{display:flex;gap:.6rem;align-items:flex-start;font-weight:500}.f .chk input{width:auto;margin-top:.6rem}
+.btn{background:var(--miss);color:#fff;border:0;border-radius:99px;padding:1rem 2rem;font:inherit;font-weight:700;font-size:1.1rem;cursor:pointer;justify-self:start}
+#ok{display:none;background:var(--deep);color:#fff;border-radius:24px;padding:1.6rem;border:1px solid var(--gold)}#ok b.ref{font-family:Tajawal;font-size:2rem;color:var(--gold);display:block}
+footer{border-top:1px solid var(--gold);padding:2rem clamp(1rem,5vw,5rem);display:flex;flex-wrap:wrap;gap:1rem 2.5rem;justify-content:space-between;align-items:center;font-weight:500}footer nav{display:flex;gap:1.6rem;flex-wrap:wrap}footer a{color:var(--ink)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.toc{display:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head><body>
+<header><a class="logo d" href="index.html">ساهل</a>
+<nav aria-label="الصفحات القانونية"><a href="privacy.html" >سياسة الخصوصية</a><a href="terms.html" aria-current="page">شروط الاستخدام</a><a href="data-deletion.html" >حذف البيانات</a></nav>
+<a class="back" href="index.html">العودة للرئيسية</a></header>
+<section class="top"><h1 class="d">شروط الاستخدام</h1><p>القواعد التي تنظّم علاقتنا بعملائنا من العيادات، بوضوح وبلا تعقيد.</p><div class="chips"><span>آخر تحديث: ١٨ أكتوبر ٢٠٢٦</span><span>الإصدار ١٫٠ (مسودة)</span></div></section>
+<div class="draft">⚠ مسودة تمهيدية لا تُعدّ استشارة قانونية. تحتاج مراجعة مستشار قانوني مرخّص في المملكة، وتعبئة البيانات بين [ ] قبل النشر.</div>
+<div class="wrap"><aside class="toc" aria-label="المحتويات"><b>المحتويات</b><ol id="toc"></ol></aside>
+<article>
+<h2>القبول والتعريفات</h2>
+<p>باستخدامك موقع ساهل أو خدماتها فإنك توافق على هذه الشروط. «الخدمة» هي منصة ساهل بما فيها بوت واتساب وتوقّع الغياب والأتمتة. «العميل» هو العيادة أو المنشأة الصحية المشتركة. «المستخدم» هو كل شخص يصل إلى الخدمة عن طريق العميل.</p>
+<h2>الأهلية والحساب</h2>
+<p>الخدمة موجّهة للمنشآت الصحية. يقرّ العميل بأنه يحمل التراخيص اللازمة لمزاولة نشاطه من الجهات المختصة في المملكة، وبأن من يسجّل باسمه مخوّل بذلك. العميل مسؤول عن سرية بيانات الدخول وعن أي نشاط يتم عبر حسابه.</p>
+<h2>طبيعة الخدمة وحدودها</h2>
+<p>ساهل أداة لإدارة المواعيد والتواصل، وهي ليست خدمة طبية ولا تقدّم تشخيصاً أو نصيحة علاجية. ولا يجوز استخدامها للحالات الطارئة، وعلى العميل أن يوجّه مرضاه للطوارئ عند الحاجة.</p>
+<h2>التزامات العميل</h2>
+<ul><li>الحصول على موافقة المرضى النظامية قبل مراسلتهم عبر واتساب أو معالجة بياناتهم.</li><li>إدخال بيانات صحيحة، والالتزام بنظام حماية البيانات الشخصية والأنظمة الصحية.</li><li>عدم إرسال رسائل تسويقية غير مرغوبة أو مخالفة للنظام عبر الخدمة.</li><li>الاستجابة لطلبات أصحاب البيانات، ونساعده في ذلك عبر أدوات المنصة.</li></ul>
+<h2>الذكاء الاصطناعي</h2>
+<p>نتائج توقّع الغياب تقديرات إحصائية لا تضمن دقة معينة ولا نسبة محددة لخفض الغياب. تبقى القرارات الإدارية والسريرية مسؤولية العميل، ولا يجوز استخدام التوقّع لحرمان أي مريض من الرعاية.</p>
+<h2>معالجة البيانات</h2>
+<p>يكون العميل هو المتحكّم ببيانات مرضاه وتعمل ساهل جهة معالجة بتعليماته، وتحكم ذلك <a href="privacy.html">سياسة الخصوصية</a> واتفاقية معالجة البيانات [ملحق العقد].</p>
+<h2>الرسوم والفوترة</h2>
+<p>تُحدد الرسوم في عرض الأسعار أو العقد: [تُدرج هنا]. تُضاف ضريبة القيمة المضافة وفق الأنظمة، وتُفوتر الاشتراكات [شهرياً/سنوياً]. تُطبّق سياسة الإلغاء والاسترداد التالية: [ ].</p>
+<h2>الملكية الفكرية</h2>
+<p>تبقى المنصة وشعاراتها وتصاميمها وشيفرتها ملكاً لساهل، ويُمنح العميل حق استخدام محدود غير حصري وغير قابل للتحويل خلال مدة الاشتراك. وتبقى بيانات العميل ملكاً له.</p>
+<h2>الاستخدام المقبول</h2>
+<p>يُمنع: محاولة اختراق الخدمة أو تعطيلها، أو الهندسة العكسية، أو إعادة بيعها دون إذن، أو استخدامها لغرض مخالف للأنظمة، أو رفع محتوى ضار.</p>
+<h2>التوافر والدعم</h2>
+<p>نسعى لتوفير الخدمة بصورة مستمرة، مع إعلان مسبق عن الصيانة المجدولة. مستوى الخدمة والدعم الفني موضّحان في [اتفاقية مستوى الخدمة].</p>
+<h2>تحديد المسؤولية</h2>
+<p>بالقدر الذي يسمح به النظام، لا تتحمل ساهل مسؤولية الأضرار غير المباشرة أو فوات الأرباح، ويُحدد إجمالي مسؤوليتها بقيمة الرسوم المدفوعة في [12] شهراً السابقة للمطالبة، ولا يشمل ذلك ما لا يجوز نظاماً استثناؤه.</p>
+<h2>الإنهاء وتصدير البيانات</h2>
+<p>يحق للعميل إنهاء الاشتراك وفق العقد. وتحق لنا تعليق الخدمة عند مخالفة جوهرية لهذه الشروط. بعد الإنهاء يمكن للعميل تصدير بياناته خلال [30] يوماً ثم تُحذف وفق <a href="privacy.html">سياسة الخصوصية</a>.</p>
+<h2>القانون الواجب والاختصاص</h2>
+<p>تخضع هذه الشروط لأنظمة المملكة العربية السعودية، وتختص بالنظر في أي نزاع المحاكم المختصة في [مدينة]، ما لم يتفق الطرفان على التحكيم.</p>
+<h2>التعديل والتواصل</h2>
+<p>قد نعدّل هذه الشروط ونُعلم العملاء بالتغييرات الجوهرية مسبقاً، واستمرار الاستخدام بعد سريانها يعني قبولها. للتواصل: <a href="mailto:hello@sahel.example">hello@sahel.example</a> [يُستبدل بالبريد الفعلي].</p></article></div>
+<footer><b class="d" style="font-size:1.6rem">ساهل</b><nav aria-label="روابط قانونية"><a href="privacy.html">سياسة الخصوصية</a><a href="terms.html">شروط الاستخدام</a><a href="data-deletion.html">حذف البيانات</a></nav><small>صُنع بفخر في المملكة العربية السعودية · © 2026 ساهل</small></footer>
+<script>
+const hs=[...document.querySelectorAll('article h2')],toc=document.getElementById('toc');
+hs.forEach((h,i)=>{h.id='s'+(i+1);const li=document.createElement('li');li.innerHTML='<a href="#s'+(i+1)+'">'+h.textContent+'</a>';toc.appendChild(li)});
+const links=[...toc.querySelectorAll('a')];
+if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id))}}),{rootMargin:'-15% 0px -75% 0px'});hs.forEach(h=>io.observe(h));}
 
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; background: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .logo { font-size: 28px; font-weight: 800; color: var(--saudi-green); display: flex; align-items: center; gap: 10px; }
-        .logo span { color: var(--gold); }
-        .nav-links a { text-decoration: none; color: var(--dark); font-weight: 700; margin-right: 30px; transition: 0.3s; }
-        .nav-links a:hover { color: var(--saudi-green); }
-
-        .content-container { max-width: 900px; margin: 60px auto; padding: 50px 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 10; }
-        h1 { color: var(--saudi-green); font-size: 2.5rem; margin-bottom: 30px; text-align: center; border-bottom: 2px solid var(--sand); padding-bottom: 20px; }
-        h2 { color: var(--saudi-green); font-size: 1.5rem; margin-top: 30px; margin-bottom: 15px; }
-        p, li { font-size: 1.1rem; line-height: 1.9; color: #444; margin-bottom: 15px; text-align: justify; }
-        ul { margin-right: 25px; margin-bottom: 20px; }
-
-        footer { background: var(--dark); color: white; padding: 40px 5%; text-align: center; margin-top: auto; }
-        .footer-links { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-        .footer-links a { color: #aaa; text-decoration: none; font-size: 0.95rem; transition: 0.3s; }
-        .footer-links a:hover { color: var(--gold); }
-        .footer-note { font-size: 0.85rem; color: #777; margin-top: 20px; line-height: 1.6; }
-    </style>
-</head>
-<body>
-    <div class="bg-animation"></div>
-    <nav>
-        <div class="logo">ساهل <span>| Sahels</span></div>
-        <div class="nav-links">
-            <a href="/web/index.html">الرئيسية</a>
-            <a href="/web/about.html">من نحن</a>
-            <a href="/web/contact.html">تواصل معنا</a>
-        </div>
-    </nav>
-
-    <div class="content-container">
-        <h1>شروط الخدمة</h1>
-        <p>مرحباً بك في <strong>ساهل</strong>. باستخدامك لمنصتنا وخدماتنا (البوت الذكي، لوحة التحكم، والتكاملات)، فإنك توافق على الشروط والأحكام التالية.</p>
-
-        <h2>1. طبيعة الخدمة</h2>
-        <p>ساهل هي منصة تقنية (SaaS) تقدم أدوات لإدارة الحجوزات والتواصل مع المرضى عبر واتساب وإنستغرام. نحن <strong>لا نقدم أي استشارات طبية</strong>، ولا نتحمل مسؤولية أي قرارات طبية يتخذها الطبيب أو العيادة.</p>
-
-        <h2>2. حساب العيادة والمسؤولية</h2>
-        <p>أنت مسؤول عن الحفاظ على سرية بيانات الدخول إلى لوحة التحكم الخاصة بعيادتك. أي نشاط يتم من خلال حسابك يقع تحت مسؤوليتك المباشرة.</p>
-
-        <h2>3. الاشتراكات والدفع</h2>
-        <p>يتم تجديد الاشتراكات بناءً على الخطة المختارة. في حال عدم السداد، يحق لنا تعليق الخدمة مؤقتاً حتى يتم تحديث حالة الدفع.</p>
-
-        <h2>4. الاستخدام المقبول</h2>
-        <p>يُمنع استخدام المنصة لإرسال رسائل مزعجة (Spam)، أو محتوى غير قانوني، أو أي مواد تخالف الأنظمة السعودية أو سياسات شركة Meta (WhatsApp/Instagram).</p>
-
-        <h2>5. إنهاء الخدمة</h2>
-        <p>يمكنك إلغاء اشتراكك في أي وقت. يمكننا أيضاً إنهاء الخدمة في حال انتهاك هذه الشروط، مع الالتزام بالحفاظ على بياناتك وفقاً لسياسة الخصوصية.</p>
-    </div>
-
-    <footer>
-        <div class="footer-links">
-            <a href="web/privacy">سياسة الخصوصية</a>
-            <a href="web/terms">شروط الخدمة</a>
-            <a href="/data-deletion">حذف البيانات</a>
-        </div>
-        <p>جميع البيانات محفوظة ومعالجة داخل المملكة العربية السعودية وفقاً لنظام حماية البيانات الشخصية (PDPL).</p>
-        <p class="footer-note">© 2026 شركة ساهل للحلول التقنية. جميع الحقوق محفوظة.</p>
-    </footer>
-</body>
-</html>
+</script></body></html>
