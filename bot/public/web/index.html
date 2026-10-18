@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ساهل | عيادة المستقبل</title>
+    <title>ساهل | النظام البيئي الطبي الذكي</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,7 +12,7 @@
     
     <!-- Three.js (المشهد ثلاثي الأبعاد) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <!-- GSAP (الحركات السينمائية) -->
+    <!-- GSAP (التمرير السينمائي) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <!-- Lenis (التمرير السلس) -->
@@ -23,9 +23,9 @@
             theme: {
                 extend: {
                     colors: {
-                        medical: '#0D9488',     // تيل طبي (Teal)
+                        medical: '#0D9488',     // تيل طبي
                         medicalLight: '#CCFBF1',
-                        sage: '#84CC16',        // أخضر فاتح (Sage)
+                        sage: '#84CC16',        // أخضر فاتح
                         sand: '#FEFCE8',        // بيج دافئ
                         dark: '#0F172A',        // أزرق داكن
                     },
@@ -50,20 +50,20 @@
             width: 100vw; 
             height: 100vh; 
             z-index: 0; 
-            pointer-events: none; /* السماح بمرور أحداث التمرير */
+            pointer-events: none;
         }
 
         /* طبقة المحتوى القابل للتمرير */
         #scroll-content { 
             position: relative; 
             z-index: 10; 
-            pointer-events: none; /* السماح بمرور أحداث التمرير إلى WebGL */
+            pointer-events: none;
         }
         #scroll-content > * { 
-            pointer-events: auto; /* إعادة تفعيل التفاعل مع العناصر */
+            pointer-events: auto;
         }
 
-        /* شاشات العرض (الأقسام) */
+        /* أقسام العرض */
         .section {
             min-height: 100vh; 
             display: flex; 
@@ -71,14 +71,14 @@
             justify-content: center; 
             align-items: center; 
             text-align: center;
-            padding: 0 10%;
+            padding: 0 5%;
         }
 
         /* تصميم البطاقات الزجاجية (Glassmorphism) */
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.8);
             box-shadow: 0 30px 60px rgba(0,0,0,0.05);
         }
@@ -92,7 +92,7 @@
             color: #0F172A;
         }
         .hero-title span { 
-            color: #0D9488; /* تيل طبي */
+            color: #0D9488;
         }
         .hero-subtitle { 
             font-size: 1.5rem; 
@@ -169,9 +169,8 @@
             </div>
         </section>
 
-        <!-- القسم الثاني: الميزات (تظهر الكاميرا خلفها) -->
+        <!-- القسم الثاني: الميزات -->
         <section id="features" class="section">
-            <!-- بطاقات الميزات ستظهر فوق المشهد -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mt-20">
                 <!-- بطاقة 1 -->
                 <div class="glass-card p-8 rounded-3xl text-right feature-card">
@@ -236,19 +235,17 @@
         }
         requestAnimationFrame(raf);
 
-        // 2. إعداد Three.js Scene (غرفة العيادة ثلاثية الأبعاد)
+        // 2. إعداد Three.js Scene (النظام البيئي الطبي)
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0xFEFCE8, 0.02); // ضباب بلون الخلفية البيج
+        scene.fog = new THREE.FogExp2(0xFEFCE8, 0.02);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 12); // البداية بعيداً
+        camera.position.set(0, 0, 15);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
         // 3. الإضاءة
@@ -257,89 +254,96 @@
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.position.set(5, 10, 7);
-        dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
 
-        // إضاءة طبية (تيل)
-        const medicalLight = new THREE.PointLight(0x0D9488, 2, 20);
-        medicalLight.position.set(-3, 5, 5);
+        const medicalLight = new THREE.PointLight(0x0D9488, 2, 30);
+        medicalLight.position.set(-5, 5, 5);
         scene.add(medicalLight);
 
-        // 4. بناء المشهد (غرفة عيادة مبسطة)
-        // الأرضية
-        const floorGeometry = new THREE.PlaneGeometry(50, 50);
-        const floorMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xE2E8F0, 
-            roughness: 0.8, 
-            metalness: 0.1 
-        });
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        scene.add(floor);
+        // 4. بناء "النظام البيئي الطبي" (شبكة جزيئات معقدة)
+        const particleCount = 1500;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
 
-        // مكتب الاستقبال
-        const deskGeometry = new THREE.BoxGeometry(4, 1, 2);
-        const deskMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xFFFFFF, 
-            roughness: 0.2, 
-            metalness: 0.5 
-        });
-        const desk = new THREE.Mesh(deskGeometry, deskMaterial);
-        desk.position.set(0, 0.5, -3);
-        desk.castShadow = true;
-        desk.receiveShadow = true;
-        scene.add(desk);
+        const color1 = new THREE.Color(0x0D9488); // تيل
+        const color2 = new THREE.Color(0x84CC16); // أخضر فاتح
+        const color3 = new THREE.Color(0xFFFFFF); // أبيض
 
-        // كرسي
-        const chairGeometry = new THREE.BoxGeometry(1, 1.5, 1);
-        const chairMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x0D9488, // تيل طبي
-            roughness: 0.5 
-        });
-        const chair = new THREE.Mesh(chairGeometry, chairMaterial);
-        chair.position.set(0, 0.75, -1.5);
-        chair.castShadow = true;
-        scene.add(chair);
+        for (let i = 0; i < particleCount; i++) {
+            // توزيع كروي
+            const radius = 5 + Math.random() * 10;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
 
-        // شاشة عرض ثلاثية الأبعاد
-        const screenGeometry = new THREE.BoxGeometry(3, 1.5, 0.1);
-        const screenMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x0F172A, 
-            emissive: 0x0D9488, 
-            emissiveIntensity: 0.5,
-            roughness: 0.1
+            positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            positions[i * 3 + 2] = radius * Math.cos(phi);
+
+            // مزج الألوان
+            const rand = Math.random();
+            let mixedColor;
+            if (rand < 0.4) mixedColor = color1;
+            else if (rand < 0.7) mixedColor = color2;
+            else mixedColor = color3;
+
+            colors[i * 3] = mixedColor.r;
+            colors[i * 3 + 1] = mixedColor.g;
+            colors[i * 3 + 2] = mixedColor.b;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.15,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
         });
-        const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-        screen.position.set(0, 2.5, -4);
-        screen.castShadow = true;
-        scene.add(screen);
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // إضافة خطوط تربط الجزيئات (شبكة عصبية)
+        const linesMaterial = new THREE.LineBasicMaterial({ color: 0x0D9488, transparent: true, opacity: 0.1 });
+        const linesGeometry = new THREE.BufferGeometry();
+        const linePositions = [];
+        for (let i = 0; i < particleCount; i += 5) {
+            if (i + 1 < particleCount) {
+                linePositions.push(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+                linePositions.push(positions[(i + 1) * 3], positions[(i + 1) * 3 + 1], positions[(i + 1) * 3 + 2]);
+            }
+        }
+        linesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        const lines = new THREE.LineSegments(linesGeometry, linesMaterial);
+        scene.add(lines);
 
         // 5. حركة الكاميرا مع التمرير (GSAP ScrollTrigger)
         gsap.registerPlugin(ScrollTrigger);
 
-        // تحريك الكاميرا للأمام نحو المكتب
+        // تحريك الكاميرا للأمام
         gsap.to(camera.position, {
-            z: 5, // الاقتراب
-            y: 1.5,
-            scrollTrigger: {
-                trigger: "#features",
-                start: "top bottom",
-                end: "top top",
-                scrub: 1, // مزامنة مع التمرير
-            }
-        });
-
-        // إمالة الكاميرا قليلاً
-        gsap.to(camera.rotation, {
-            x: -0.1,
+            z: 5,
+            y: 2,
             scrollTrigger: {
                 trigger: "#features",
                 start: "top bottom",
                 end: "top top",
                 scrub: 1,
+            }
+        });
+
+        // تدوير النظام البيئي
+        gsap.to(particles.rotation, {
+            y: Math.PI * 2,
+            scrollTrigger: {
+                trigger: "body",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 2,
             }
         });
 
@@ -353,12 +357,17 @@
         });
 
         // 6. حلقة الرسم
+        const clock = new THREE.Clock();
         function animate() {
             requestAnimationFrame(animate);
-            
-            // إضاءة نابضة
-            const time = Date.now() * 0.001;
-            medicalLight.intensity = 1.5 + Math.sin(time * 2) * 0.5;
+            const t = clock.getElapsedTime();
+
+            // تنفس الجزيئات
+            particles.rotation.y += 0.0005;
+            lines.rotation.y += 0.0005;
+
+            // نبض الإضاءة
+            medicalLight.intensity = 1.5 + Math.sin(t * 2) * 0.5;
 
             renderer.render(scene, camera);
         }
