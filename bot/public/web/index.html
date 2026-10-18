@@ -3,364 +3,464 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ساهل | المنصة الذكية لإدارة ومواعيد العيادات الطبية</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@700;800;900&display=swap" rel="stylesheet">
+<title>ساهل | كل كرسي فارغ له حل</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;500;700&family=Tajawal:wght@800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
 <style>
-:root {
-  --bg: #071722;
-  --panel-bg: rgba(15, 38, 54, 0.7);
-  --ink: #EEF5F8;
-  --ink-dim: #94AEC0;
-  --teal: #00C9A7;
-  --teal-glow: rgba(0, 201, 167, 0.25);
-  --miss: #FF5A3C;
-  --miss-glow: rgba(255, 90, 60, 0.2);
-  --gold: #D4AF37;
-  --gold-glow: rgba(212, 175, 55, 0.2);
-  --paper: #0B2230;
-  --border: rgba(212, 175, 55, 0.25);
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html.lenis { height: auto; }
-body {
-  font-family: 'IBM Plex Sans Arabic', sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  overflow-x: hidden;
-  line-height: 1.6;
-}
-
-a, button { font: inherit; color: inherit; text-decoration: none; cursor: pointer; }
-.display { font-family: 'Tajawal', sans-serif; font-weight: 900; }
-
-/* Custom Glassmorphism Nav */
-nav {
-  position: fixed; inset: 0 0 auto 0; z-index: 100;
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 1.2rem clamp(1.2rem, 5vw, 4rem);
-  background: rgba(7, 23, 34, 0.8);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
-}
-.logo { font-size: 2.2rem; color: #fff; letter-spacing: -0.5px; }
-.logo span { color: var(--teal); }
-.pill {
-  background: linear-gradient(135deg, var(--teal), #00897B);
-  color: #fff; padding: 0.8rem 2rem; border-radius: 99px;
-  font-weight: 700; transition: transform 0.3s, box-shadow 0.3s;
-  box-shadow: 0 10px 25px var(--teal-glow);
-}
-.pill:hover { transform: translateY(-2px); box-shadow: 0 15px 30px var(--teal-glow); }
-
-/* Hero Section */
-#hero {
-  position: relative; min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  padding: 8rem 1.5rem 4rem; text-align: center;
-  background: radial-gradient(circle at 50% 30%, rgba(0, 201, 167, 0.08), transparent 70%);
-}
-.hero-content { max-width: 900px; margin: 0 auto; z-index: 2; }
-.badge {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold);
-  color: var(--gold); padding: 0.4rem 1.2rem; border-radius: 99px;
-  font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem;
-}
-.hero-content h1 {
-  font-size: clamp(2.8rem, 6.5vw, 5.5rem); line-height: 1.15;
-  margin-bottom: 1.5rem; text-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-.hero-content h1 em { font-style: normal; color: var(--miss); }
-.hero-content p {
-  font-size: clamp(1.1rem, 1.8vw, 1.4rem); color: var(--ink-dim);
-  max-width: 680px; margin: 0 auto 2.5rem; line-height: 1.8;
-}
-.hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-.cta-sec {
-  border: 1px solid var(--border); background: var(--panel-bg);
-  padding: 0.8rem 2rem; border-radius: 99px; font-weight: 700;
-  transition: background 0.3s, border-color 0.3s;
-}
-.cta-sec:hover { border-color: var(--teal); background: rgba(0,201,167,0.1); }
-
-/* Interactive Simulator Dashboard */
-#demo-sim {
-  margin-top: 3.5rem; background: var(--panel-bg);
-  border: 1px solid var(--border); border-radius: 24px;
-  padding: 2rem; backdrop-filter: blur(12px);
-  box-shadow: 0 30px 60px rgba(0,0,0,0.4);
-}
-.sim-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem; margin-top: 1.5rem; text-align: right;
-}
-.sim-card {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px; padding: 1.2rem;
-}
-.sim-card h4 { font-size: 0.9rem; color: var(--ink-dim); margin-bottom: 0.5rem; }
-.sim-card .val { font-size: 1.8rem; font-family: 'Tajawal'; font-weight: 800; color: var(--teal); }
-
-/* Story Section */
-#story { padding: 6rem 1.5rem; }
-.section-title { text-align: center; margin-bottom: 4rem; }
-.section-title h2 { font-size: clamp(2.2rem, 4vw, 3.5rem); margin-bottom: 1rem; }
-.section-title p { color: var(--ink-dim); font-size: 1.1rem; }
-
-.features-grid {
-  max-width: 1200px; margin: 0 auto;
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;
-}
-.feature-card {
-  background: var(--panel-bg); border: 1px solid var(--border);
-  border-radius: 24px; padding: 2.5rem; backdrop-filter: blur(10px);
-  transition: transform 0.3s, border-color 0.3s;
-}
-.feature-card:hover { transform: translateY(-5px); border-color: var(--teal); }
-.feature-card .icon {
-  width: 50px; height: 50px; background: var(--teal-glow);
-  border-radius: 12px; display: grid; place-items: center;
-  color: var(--teal); font-size: 1.5rem; margin-bottom: 1.5rem;
-}
-.feature-card h3 { font-size: 1.6rem; margin-bottom: 1rem; font-family: 'Tajawal'; }
-.feature-card p { color: var(--ink-dim); line-height: 1.8; }
-
-/* WhatsApp Chat Mockup */
-.chat-box {
-  background: rgba(7, 23, 34, 0.9); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.95rem;
-}
-.chat-msg {
-  padding: 0.6rem 1rem; border-radius: 12px; margin-bottom: 0.8rem; max-width: 85%;
-}
-.chat-msg.in { background: rgba(255,255,255,0.08); align-self: flex-start; }
-.chat-msg.out { background: var(--teal); color: #071722; font-weight: 600; margin-inline-start: auto; }
-
-/* Vision & ROI Calculator Section */
-#roi-calculator {
-  background: var(--paper); border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border); padding: 6rem 1.5rem;
-}
-.calc-container {
-  max-width: 1000px; margin: 0 auto; background: var(--panel-bg);
-  border: 1px solid var(--border); border-radius: 28px; padding: 3rem 2rem;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
-}
-@media (max-width: 768px) { .calc-container { grid-template-columns: 1fr; } }
-.calc-controls label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
-.calc-controls input[type=range] {
-  width: 100%; margin-bottom: 1.5rem; accent-color: var(--teal);
-}
-.calc-result {
-  background: rgba(0, 201, 167, 0.05); border: 1px solid var(--teal);
-  border-radius: 20px; padding: 2rem; text-align: center;
-}
-.calc-result h4 { font-size: 1.1rem; color: var(--ink-dim); margin-bottom: 0.5rem; }
-.calc-result .amount { font-size: 3rem; font-family: 'Tajawal'; font-weight: 900; color: var(--teal); }
-
-/* Trust & Compliance Section */
-#trust { padding: 6rem 1.5rem; text-align: center; }
-.badges-row {
-  display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-top: 2.5rem;
-}
-.trust-badge {
-  background: var(--panel-bg); border: 1px solid var(--border);
-  padding: 1.5rem 2.5rem; border-radius: 20px; font-weight: 700;
-  display: flex; align-items: center; gap: 1rem;
-}
-
-/* CTA Section */
-#cta {
-  padding: 8rem 1.5rem; text-align: center;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 90, 60, 0.1), transparent 70%);
-}
-#cta h2 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 1.5rem; }
-#cta p { color: var(--ink-dim); font-size: 1.2rem; max-width: 600px; margin: 0 auto 2.5rem; }
-
-/* Footer */
-footer {
-  padding: 3rem 1.5rem; border-top: 1px solid var(--border);
-  display: flex; justify-content: space-between; align-items: center;
-  flex-wrap: wrap; gap: 1.5rem; max-width: 1200px; margin: 0 auto;
-  color: var(--ink-dim); font-size: 0.95rem;
-}
-footer nav { position: static; background: none; border: none; padding: 0; display: flex; gap: 1.5rem; }
+:root{--bg:#F7F3EE;--ink:#0B2230;--teal:#00A39B;--miss:#FF5A3C;--gold:#C5A059;--green:#0B6B73;--paper:#FFFDFA;--pat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 4l7 15 15-7-7 15 15 7-15 7 7 15-15-7-7 15-7-15-15 7 7-15-15-7 15-7-7-15 15 7z' fill='none' stroke='%23C5A059' stroke-opacity='.28'/%3E%3C/svg%3E")}
+*{box-sizing:border-box;margin:0}
+html.lenis{height:auto}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden;cursor:none}
+a,button{cursor:none;font:inherit;color:inherit;text-decoration:none}
+.display{font-family:'Tajawal',sans-serif;font-weight:900;line-height:1.02}
+/* cursor */
+#cur{position:fixed;top:0;left:0;width:46px;height:46px;margin:-23px 0 0 -23px;border:1.5px solid var(--ink);border-radius:50%;z-index:99;pointer-events:none;transition:width .25s,height .25s,margin .25s,background .25s,border-color .25s;mix-blend-mode:multiply}
+#cur.hot{width:84px;height:84px;margin:-42px 0 0 -42px;background:rgba(255,90,60,.25);border-color:var(--miss)}
+@media (hover:none){body,a,button{cursor:auto}#cur{display:none}}
+/* nav */
+nav{position:fixed;inset:0 0 auto 0;z-index:30;display:flex;justify-content:space-between;align-items:center;padding:1.4rem clamp(1.2rem,4vw,3.5rem)}
+.logo{font-size:2rem;background:var(--paper);padding:.1rem 1.1rem;border-radius:99px;border:1px solid var(--gold)}
+.pill{background:var(--ink);color:var(--paper);padding:.8rem 1.8rem;border-radius:99px;font-weight:700;display:inline-block;transition:transform .3s}
+/* hero */
+#hero{position:relative;height:100svh;min-height:640px;overflow:hidden;--hi:#0B2A3C;--cta:#FF5A3C;--ci:#fff;background:linear-gradient(160deg,#FFE3CC,#9AD4D6)}
+#sky{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+#fx{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;transition:opacity .6s}
+.hero-copy{position:absolute;inset:auto 0 7vh 0;margin:0 auto;text-align:center;max-width:980px;padding:0 1.2rem;color:var(--hi);pointer-events:none}
+.hero-copy h1{font-size:clamp(2.6rem,6.5vw,5.6rem);text-shadow:none}
+.hero-copy p{background:none;backdrop-filter:none;margin:1rem auto 1.6rem;max-width:34rem;color:inherit;opacity:.9;transition:opacity .4s;line-height:1.9}
+.hero-copy .row{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;pointer-events:auto}
+.cta{background:var(--cta);color:var(--ci);padding:1rem 2.4rem;border-radius:99px;font-weight:700;font-size:1.15rem;display:inline-block;box-shadow:0 18px 40px -16px rgba(11,34,48,.55);transition:transform .3s}
+.ghost{border:1.5px solid var(--hi);color:var(--hi);padding:1rem 1.8rem;border-radius:99px;font-weight:700;background:transparent}
+.ghost[aria-pressed=true]{background:var(--cta);color:var(--ci);border-color:var(--cta)}
+.greet{display:inline-block;background:rgba(255,253,250,.78);border:1px solid var(--gold);padding:.45rem 1.2rem;border-radius:99px;font-weight:700;margin-bottom:1.1rem;color:#0B2230}
+#score{position:absolute;top:6.3rem;inset-inline-end:clamp(1.2rem,4vw,3.5rem);background:var(--paper);border:1px solid var(--gold);border-radius:22px;padding:1rem 1.5rem;pointer-events:none;box-shadow:0 20px 40px -24px rgba(6,35,31,.5);z-index:2}
+#score b{font-family:'Tajawal';font-size:2.6rem;font-weight:900;display:block;line-height:1}
+#score small{font-size:.85rem;opacity:.75;display:block}
+.hint{position:absolute;top:56%;left:0;right:0;text-align:center;pointer-events:none;font-weight:500;font-size:.95rem;color:var(--hi);opacity:.8;padding:0 1rem}
+.times{position:absolute;top:6.3rem;inset-inline-start:clamp(1.2rem,4vw,3.5rem);display:flex;gap:.4rem;z-index:2}
+.times button{padding:.4rem 1rem;border-radius:99px;border:1px solid var(--gold);background:rgba(255,253,250,.75);font-weight:500;font-size:.85rem}
+.times button[aria-pressed=true]{background:#0B2230;color:#fff}
+/* story horizontal scroll */
+#story{height:100svh;overflow:hidden;position:relative;background:#0B2A3C var(--pat);color:var(--paper)}
+#track{display:flex;width:max-content;height:100%}
+.panel{width:100vw;height:100%;padding:7rem clamp(1.2rem,5vw,5rem) 4rem;display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:center}
+.panel .word{font-size:clamp(6rem,21vw,19rem);color:transparent;-webkit-text-stroke:2px var(--gold)}
+.panel .word.fill{color:var(--gold);-webkit-text-stroke:0}
+.panel h3{font-size:clamp(1.6rem,3vw,2.6rem);font-weight:700;margin:.5rem 0 1rem;line-height:1.4}
+.panel p{font-size:1.15rem;line-height:2;opacity:.8;max-width:30rem}
+.viz{background:rgba(247,250,249,.06);border:1px solid rgba(184,147,90,.6);border-radius:32px;padding:2rem;min-height:320px;display:flex;flex-direction:column;justify-content:center;gap:.8rem}
+.msg{padding:.7rem 1.1rem;border-radius:20px;max-width:82%;font-size:1.02rem;opacity:0;animation:pop 9s infinite}
+.m-in{background:rgba(247,250,249,.12)}.m-out{background:var(--gold);margin-inline-start:auto;color:#2a1d05;font-weight:500}
+.msg:nth-child(2){animation-delay:1.4s}.msg:nth-child(3){animation-delay:2.8s}.msg:nth-child(4){animation-delay:4.2s}
+@keyframes pop{0%{opacity:0;transform:translateY(14px)}6%,86%{opacity:1;transform:none}100%{opacity:0}}
+.bars{display:flex;align-items:flex-end;gap:10px;height:220px}
+.bars span{flex:1;border-radius:10px 10px 4px 4px;background:#3FB6C4;transform-origin:bottom;animation:grow 3.6s ease-in-out infinite alternate}
+.bars span.hi{background:var(--miss)}
+@keyframes grow{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
+.orbit{width:min(300px,70%);margin:auto;animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(-360deg)}}
+#bar{position:absolute;bottom:0;inset-inline:0;height:5px;background:rgba(255,255,255,.12)}
+#bar i{display:block;height:100%;width:0;background:var(--gold);margin-inline-start:auto}
+/* vision 2030 */
+#vision{padding:9rem clamp(1.2rem,5vw,5rem) 6rem;background:var(--pat)}
+.v-head h2{font-size:clamp(3rem,8.5vw,7.5rem)}.v-head p{font-size:1.25rem;line-height:2;max-width:38rem;margin-top:1.5rem;opacity:.85}
+.dates{display:inline-flex;gap:1.2rem;flex-wrap:wrap;font-weight:500;border:1px solid var(--gold);border-radius:99px;padding:.5rem 1.4rem;background:var(--paper);margin-bottom:1.6rem}
+.v-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:2rem;margin-top:4rem;align-items:start}
+.mapbox{background:#0B2A3C;color:var(--paper);border:1px solid var(--gold);border-radius:32px;padding:1.5rem}
+#land{fill:none;stroke:rgba(255,255,255,.22);stroke-opacity:1;stroke-width:1.5;stroke-linejoin:round}
+.city text{fill:#fff;stroke:#0B2A3C;paint-order:stroke;stroke-width:5px;stroke-linejoin:round;font-size:16px;font-weight:700}
+.city .d{fill:#fff;stroke:var(--gold)}.city.on .d{fill:var(--miss);stroke:#fff}
+.ring{fill:none;stroke:var(--gold);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:ping 2.6s ease-out infinite}
+@keyframes ping{from{transform:scale(.4);opacity:1}to{transform:scale(3.4);opacity:0}}
+.scale{display:flex;align-items:center;gap:.7rem;margin-top:.8rem;font-size:.85rem;font-weight:500;color:#cfe3ee}.scale i{flex:1;height:10px;border-radius:99px}
+#metrics,#chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+#metrics button,#chips button{background:transparent;color:var(--paper);border:1px solid rgba(197,160,89,.7);border-radius:99px;padding:.45rem 1.2rem;font-weight:700;font-size:.95rem}
+#metrics button[aria-pressed=true],#chips button[aria-pressed=true]{background:var(--gold);color:#0B2230;border-color:var(--gold)}
+#feed{list-style:none;padding:0;display:grid;gap:.5rem;margin-top:1rem;min-height:11rem;align-content:start}
+#feed li{background:rgba(255,255,255,.07);color:var(--paper);border-radius:14px;padding:.6rem 1rem;font-size:.95rem;display:flex;gap:.7rem;align-items:center}
+#feed li:before{content:'';width:9px;height:9px;border-radius:50%;background:var(--gold);flex:none}
+.ccard{display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap;background:rgba(255,255,255,.08);color:var(--paper);border:1px solid var(--gold);border-radius:18px;padding:.9rem 1.3rem;margin-top:1rem}
+.ccard b{font-family:Tajawal;font-weight:900;font-size:1.9rem;color:var(--gold)}.ccard small{opacity:.65;margin-inline-start:auto}
+.pillars{display:grid;gap:1.2rem}
+.pillars article{background:var(--green) var(--pat);color:var(--paper);border:1px solid var(--gold);border-radius:28px;padding:2rem}
+.pillars h3{font-family:Tajawal;font-weight:900;font-size:2.5rem;color:var(--gold);margin-bottom:.5rem}.pillars p{line-height:1.9;opacity:.92}
+.count-t{font-family:Tajawal;font-weight:800;font-size:clamp(1.8rem,4vw,3.4rem);margin-top:5rem}
+.count{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1.5rem}
+.count div{background:#0B2A3C;color:var(--paper);border-radius:26px;padding:1.6rem 1rem;text-align:center;border:1px solid var(--gold)}
+.count b{display:block;font-family:Tajawal;font-weight:900;font-size:clamp(2.4rem,6.5vw,5.5rem);line-height:1.1;color:var(--gold)}
+/* trust */
+#trust{padding:9rem 0 6rem;overflow:hidden}
+.marq{display:flex;width:max-content;animation:mq 30s linear infinite}
+.marq span{font-size:clamp(4rem,12vw,11rem);padding-inline:2rem;white-space:nowrap}
+.marq span:nth-child(even){color:var(--green)}
+@keyframes mq{to{transform:translateX(50%)}}
+.trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;padding:3rem clamp(1.2rem,5vw,5rem) 0}
+.trio div{background:var(--paper);border:1px solid var(--gold);border-radius:26px;padding:2rem}
+.trio h4{font-family:'Tajawal';font-weight:800;font-size:2rem;margin-bottom:.6rem}
+.trio p{line-height:1.9;opacity:.8}
+/* cta */
+#cta{background:var(--pat);min-height:90svh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:6rem 1.5rem}
+#cta h2{font-size:clamp(3.2rem,11vw,10rem);max-width:1200px}
+#cta .pill{margin-top:3rem;font-size:1.4rem;padding:1.3rem 3.2rem;background:var(--miss);color:#fff}
+footer{padding:2.5rem clamp(1.2rem,5vw,5rem);border-top:1px solid var(--gold);display:flex;flex-wrap:wrap;gap:1.5rem 3rem;justify-content:space-between;align-items:center;font-weight:500}
+footer nav{position:static;padding:0;display:flex;gap:2rem}
+#load{position:fixed;inset:0;z-index:200;background:#0B2A3C var(--pat);display:grid;place-items:center;color:var(--gold);text-align:center;transition:opacity .6s}
+#load .display{font-size:clamp(4rem,15vw,12rem)}#load small{display:block;margin-top:1rem;font-size:1.2rem;color:var(--paper);opacity:.8}
+.chip{display:none;background:var(--paper);border:1px solid var(--gold);padding:.55rem 1.2rem;border-radius:99px;font-weight:700;font-size:.95rem}
+@media (min-width:900px){.chip{display:block}}
+@media (max-width:820px){.panel{grid-template-columns:1fr;padding-top:6rem;gap:1rem}.panel .word{font-size:30vw}.viz{min-height:240px}.v-grid{grid-template-columns:1fr}.count{grid-template-columns:repeat(2,1fr)}#score{top:5.6rem}}
+@media (max-width:620px){#score{top:9.4rem;inset-inline-start:clamp(1.2rem,4vw,3.5rem);inset-inline-end:auto}.hint{display:none}}
+@media (prefers-reduced-motion:reduce){.marq,.orbit,.bars span,.msg{animation:none;opacity:1}}
 </style>
 </head>
 <body>
+<div id="cur"></div>
+<div id="load"><div><div class="display">حيّاك الله</div><small>ساهل، منصة العيادات الذكية في المملكة</small></div></div>
+<nav><a class="logo display" href="#hero">ساهل</a><span class="chip" id="chip"></span><a class="pill" href="#cta">احجز عرضاً</a></nav>
 
-<!-- Navigation -->
-<nav>
-  <a class="logo display" href="#">ساهل<span>.</span></a>
-  <a class="pill" href="#cta">احجز عرضاً توضيحياً</a>
-</nav>
-
-<!-- Hero Section -->
+<!-- HERO: Interactive Canvas & Breathing Ritual -->
 <section id="hero">
-  <div class="hero-content">
-    <div class="badge">✦ منصة إدارة المواعيد الذكية الأولى للمملكة</div>
-    <h1 class="display">كل كرسي فارغ في عيادتك...<br>له <em>حلّ رقمي ذكي</em></h1>
-    <p>ساهل يتولى تأكيد المواعيد، استعادة الغائبين، والرد عبر الواتساب بذكاء اصطناعي يفهم مرضاك بلهجتهم المحلية وعلى مدار الساعة.</p>
-    
-    <div class="hero-actions">
-      <a class="pill" href="#cta">تأكيد المواعيد مجاناً</a>
-      <a class="cta-sec" href="#roi-calculator">احسب الأرباح المُستعادة</a>
-    </div>
-
-    <!-- Live Interactive Dashboard Demo -->
-    <div id="demo-sim">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:700; color:var(--gold);">أداء العيادة المباشر اليوم</span>
-        <span style="font-size:0.85rem; color:var(--teal);">● تحديث حي</span>
-      </div>
-      <div class="sim-grid">
-        <div class="sim-card">
-          <h4>المواعيد المحجوزة</h4>
-          <div class="val" id="count-booked">142</div>
-        </div>
-        <div class="sim-card">
-          <h4>الغياب المتوقع (AI)</h4>
-          <div class="val" style="color:var(--miss)" id="count-missed">12</div>
-        </div>
-        <div class="sim-card">
-          <h4>تمت استعادتهم تلقائياً</h4>
-          <div class="val" id="count-recovered">10</div>
-        </div>
-        <div class="sim-card">
-          <h4>الإيرادات المستعادة</h4>
-          <div class="val" style="color:var(--gold)" id="val-roi">3,500 ر.س</div>
-        </div>
-      </div>
-    </div>
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <canvas id="fx" role="img" aria-label="جدول مواعيد وكلمة غياب تتحول إلى حضور عند استعادة المواعيد"></canvas>
+  <div id="score" aria-live="polite"><small>الحضور المُستعاد</small><b><span id="pct">0</span>٪</b><small><span id="cnt">0</span> موعد أُعيد</small></div>
+  <div class="hint">مرّر فوق المربعات المنقّطة لتستعيد المواعيد الغائبة، أو فوق الكلمة نفسها</div>
+  <div class="times" role="group" aria-label="وقت اليوم"><button data-p="0">صباح</button><button data-p="1">ظهر</button><button data-p="2">مساء</button><button data-p="3">ليل</button></div>
+  <div class="hero-copy">
+    <span class="greet" id="greet"></span>
+    <h1 class="display" id="hl">خذ نفساً.</h1>
+    <p id="sub">ساهل يتولى مواعيد عيادتك وغيابها ورسائلها، لتتفرغ لمرضاك.</p>
+    <div class="row"><a class="cta" href="#cta">ابدأ الآن</a><button class="ghost" id="auto" aria-pressed="false">دع ساهل يتولى</button><button class="ghost" id="breathe">تنفّس معنا ٣٠ ثانية</button></div>
   </div>
 </section>
 
-<!-- Features Section -->
+<!-- STORY: Horizontal Scroll Panels -->
 <section id="story">
-  <div class="section-title">
-    <h2 class="display">منظومة رقمية متكاملة لعيادة لا تهدأ</h2>
-    <p>تم تصميم ساهل ليعمل كـ مساعد تنفيذي ذكي يقلل الهدر المالي ويرفع كفاءة التشغيل</p>
-  </div>
-
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="icon">💬</div>
-      <h3>حجز وإعادة جدولة بالواتساب</h3>
-      <p>مجيب ذكي يترجم رسائل المرضى بجميع اللهجات المحلية، يقترح الأوقات المناسبة، ويثبت الحجز في الموعد المتاح فوراً.</p>
-      <div class="chat-box">
-        <div class="chat-msg in">أبي موعد أسنان قريب عند الدكتورة سارة؟</div>
-        <div class="chat-msg out">أهلاً بك! متاح غداً الساعة 4:15 مساءً. هل تحب أثبته لك؟</div>
+  <div id="track">
+    <div class="panel">
+      <div><div class="display word fill">يردّ</div><h3>بوت واتساب يحجز بلهجة مرضاك</h3><p>يفهم "أبي موعد بكرة العصر"، يقترح الأوقات المتاحة، ويثبّت الحجز في جدول الطبيب خلال ثوانٍ، حتى الثالثة فجراً.</p></div>
+      <div class="viz" aria-hidden="true">
+        <div class="msg m-in">السلام عليكم، أبي موعد أسنان بكرة</div>
+        <div class="msg m-out">وعليكم السلام! المتاح ٤:١٥ م مع د. سارة. يناسبك؟</div>
+        <div class="msg m-in">أيوه يناسبني</div>
+        <div class="msg m-out">تم الحجز ✓ وسنذكّرك قبل الموعد بساعتين.</div>
       </div>
     </div>
-
-    <div class="feature-card">
-      <div class="icon">🔮</div>
-      <h3>التنبؤ بالغياب وتفاديه</h3>
-      <p>خوارزميات خبيرة تقرأ سلوك المريض والمواعيد السابقة، وتتحقق من تأكيد الحضور قبل الموعد بـ 24 ساعة للتعامل مع الإلغاءات المباشرة.</p>
+    <div class="panel">
+      <div><div class="display word">يتوقّع</div><h3>ذكاء اصطناعي يرى الغياب قبل حدوثه</h3><p>يقرأ تاريخ المريض ووقت الموعد والطقس والعطلات، ثم يحدد المواعيد الأخطر ويتواصل مع أصحابها أولاً، ويعرض الكرسي على قائمة الانتظار إذا لزم.</p></div>
+      <div class="viz" aria-hidden="true"><div class="bars" id="bars"></div></div>
     </div>
-
-    <div class="feature-card">
-      <div class="icon">🛡️</div>
-      <h3>سيادة البيانات والامتثال الكامل</h3>
-      <p>سيرفرات داخل المملكة العربية السعودية متوافقة كلياً مع نظام حماية البيانات الشخصية (PDPL) ومعايير وزارة الصحة.</p>
+    <div class="panel">
+      <div><div class="display word fill">يحمي</div><h3>بيانات المرضى داخل المملكة فقط</h3><p>متوافق مع نظام حماية البيانات الشخصية، بموافقات صريحة وتشفير كامل وسجل تدقيق، وحق حذف البيانات بضغطة واحدة.</p></div>
+      <div class="viz" aria-hidden="true">
+        <svg class="orbit" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="100" r="92" stroke="#B8935A" stroke-dasharray="3 7"/><circle cx="100" cy="100" r="68" stroke="#00A39B" stroke-width="2"/><circle cx="100" cy="8" r="6" fill="#FF5A3C"/><circle cx="168" cy="100" r="5" fill="#B8935A"/><path d="M100 54l34 12v24c0 22-14 38-34 46-20-8-34-24-34-46V66z" stroke="#F7FAF9" stroke-width="3"/><path d="M85 98l11 11 20-22" stroke="#00A39B" stroke-width="4"/></svg>
+      </div>
     </div>
+  </div>
+  <div id="bar"><i></i></div>
+</section>
+
+<!-- VISION 2030 Section -->
+<section id="vision">
+  <div class="v-head">
+    <div class="dates"><span id="hijri"></span><span style="color:var(--gold)">✦</span><span id="greg"></span></div>
+    <h2 class="display">عيادات اليوم.<br>مملكة الغد.</h2>
+    <p>ساهل يخدم أهداف رؤية 2030 في الرعاية الصحية: خدمة أسرع للمريض، وكفاءة أعلى للعيادة، وبيانات تبقى داخل المملكة.</p>
+  </div>
+  <div class="v-grid">
+    <div class="mapbox">
+      <div id="metrics" role="group" aria-label="اختر المؤشر"><button data-k="req" aria-pressed="true">طلبات الحجز</button><button data-k="rec" aria-pressed="false">مواعيد مُستردة</button><button data-k="abs" aria-pressed="false">الغياب المتوقع</button></div>
+      <svg id="ksa" viewBox="0 0 900 680" role="group" aria-label="خريطة المملكة العربية السعودية">
+        <defs><filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter></defs>
+        <path id="land" d="M150 200 L300 120 L550 150 L750 280 L800 450 L650 600 L400 580 L200 480 L100 320 Z"/>
+        <g id="glow" filter="url(#gl)"></g>
+        <g id="dots"></g>
+        <g id="arcs"></g>
+        <g id="cities"></g>
+      </svg>
+      <div class="scale"><span>أقل</span><i id="ramp" style="background:linear-gradient(to left, var(--gold), transparent)"></i><span>أكثر</span></div>
+      <div class="ccard" aria-live="polite"><b id="cn">الرياض</b><span id="cc">1,420 حجز اليوم</span><small>بيانات توضيحية حية</small></div>
+      <div id="chips" role="group" aria-label="اختر مدينة"></div>
+      <ul id="feed" aria-live="polite">
+        <li>تأكيد حجز جديد في الرياض (عيادات الأسنان) - قبل دقيقة</li>
+        <li>استعادة كرسي فارغ في جدة عبر القائمة الآلية - قبل ٣ دقائق</li>
+      </ul>
+    </div>
+    <div class="pillars">
+      <article><h3>مجتمع حيوي</h3><p>مريض يُحجز له ويُذكَّر به ويُخاطَب بلهجته، فيصل إلى طبيبه في موعده دون عناء.</p></article>
+      <article><h3>اقتصاد مزدهر</h3><p>كل موعد مُسترد دخل إضافي للعيادة، وكل عيادة تعمل بكفاءة تدعم نمو القطاع الصحي الخاص.</p></article>
+      <article><h3>وطن طموح</h3><p>خدمة رقمية سريعة وشفافة، وبيانات سيادية داخل المملكة، وامتثال كامل للأنظمة.</p></article>
+    </div>
+  </div>
+  <h3 class="count-t">الوقت المتبقي على 2030</h3>
+  <div class="count" aria-label="العد التنازلي إلى 2030">
+    <div><b id="cd">0</b>يوم</div>
+    <div><b id="ch">0</b>ساعة</div>
+    <div><b id="cm">0</b>دقيقة</div>
+    <div><b id="cs">0</b>ثانية</div>
   </div>
 </section>
 
-<!-- Interactive ROI Calculator -->
-<section id="roi-calculator">
-  <div class="section-title">
-    <h2 class="display">احسب حجم الأرباح الضائعة في عيادتك</h2>
-    <p>اكتشف كم يمكنك استعادته شهرياً باستخدام أتمتة ساهل الذكية</p>
-  </div>
-
-  <div class="calc-container">
-    <div class="calc-controls">
-      <label for="range-appts">عدد المواعيد الأسبوعية: <span id="lbl-appts" style="color:var(--teal)">200</span></label>
-      <input type="range" id="range-appts" min="50" max="1000" value="200" step="10">
-
-      <label for="range-cost">متوسط قيمة الموعد (ر.س): <span id="lbl-cost" style="color:var(--teal)">350</span></label>
-      <input type="range" id="range-cost" min="100" max="1500" value="350" step="50">
-
-      <label for="range-rate">نسبة الغياب الحالية (%): <span id="lbl-rate" style="color:var(--miss)">20</span>%</label>
-      <input type="range" id="range-rate" min="5" max="40" value="20" step="1">
-    </div>
-
-    <div class="calc-result">
-      <h4>العائد الشهري المتوقع استعادته</h4>
-      <div class="amount" id="res-amount">19,600 ر.س</div>
-      <p style="font-size:0.9rem; color:var(--ink-dim); margin-top:1rem;">بناءً على استعادة 70% من المواعيد الملغاة تلقائياً.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Trust & Vision -->
+<!-- TRUST -->
 <section id="trust">
-  <h2 class="display">متوافق وموثوق مع التوجهات الوطنية</h2>
-  <div class="badges-row">
-    <div class="trust-badge">🇸🇦 بيانات داخل المملكة</div>
-    <div class="trust-badge">🔒 نظام PDPL للخصوصية</div>
-    <div class="trust-badge">🏥 معايير الصحة الرقمية 2030</div>
+  <div class="marq" aria-hidden="true"><span class="display">PDPL</span><span class="display">وزارة الصحة</span><span class="display">رؤية 2030</span><span class="display">PDPL</span><span class="display">وزارة الصحة</span><span class="display">رؤية 2030</span></div>
+  <div class="trio">
+    <div><h4>نظام حماية البيانات</h4><p>موافقة موثقة لكل مريض، وتقارير وصول، وحذف كامل عند الطلب.</p></div>
+    <div><h4>معايير وزارة الصحة</h4><p>تكامل آمن مع الأنظمة الصحية وفق متطلبات التشغيل المعتمدة.</p></div>
+    <div><h4>مستهدفات رؤية 2030</h4><p>رقمنة تجربة المريض وتقليل الهدر في المواعيد على مستوى القطاع.</p></div>
   </div>
 </section>
 
-<!-- Call to Action -->
 <section id="cta">
-  <h2 class="display">جاهز لملء كراسيك الفارغة؟</h2>
-  <p>انضم إلى العيادات والمراكز الطبية التي تبنت الأتمتة واستعادت دخلها المفقود.</p>
-  <a class="pill" href="mailto:demo@sahel.sa" style="font-size:1.2rem; padding: 1rem 3rem;">تواصل مع فريق ساهل</a>
+  <h2 class="display">املأ كراسيك الفارغة.</h2>
+  <a class="pill" href="mailto:hello@sahel.sa">ابدأ مع ساهل</a>
 </section>
 
-<!-- Footer -->
 <footer>
-  <div class="display" style="font-size:1.5rem; color:#fff;">ساهل.</div>
-  <nav>
-    <a href="#">سياسة الخصوصية</a>
-    <a href="#">شروط الخدمة</a>
-    <a href="#">الامتثال للبيانات</a>
-  </nav>
-
-  <div>© 2026 ساهل - كافة الحقوق محفوظة.</div>
+  <b class="display" style="font-size:1.8rem">ساهل</b>
+  <nav><a href="#privacy">سياسة الخصوصية</a><a href="#terms">شروط الاستخدام</a><a href="#data">حذف البيانات</a></nav>
+  <small>صُنع بفخر في المملكة العربية السعودية · © 2026 ساهل</small>
 </footer>
 
 <script>
-// Initialize Lenis Smooth Scroll
-const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
-requestAnimationFrame(raf);
+window.addEventListener('load', () => {
+  const loader = document.getElementById('load');
+  if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 600); }
+});
 
-// Interactive ROI Calculator Logic
-const rangeAppts = document.getElementById('range-appts');
-const rangeCost = document.getElementById('range-cost');
-const rangeRate = document.getElementById('range-rate');
+gsap.registerPlugin(ScrollTrigger);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const lenis = new Lenis({lerp: reduce ? 1 : .09});
+lenis.on('scroll', ScrollTrigger.update);
+gsap.ticker.add(t => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0);
 
-const lblAppts = document.getElementById('lbl-appts');
-const lblCost = document.getElementById('lbl-cost');
-const lblRate = document.getElementById('lbl-rate');
-const resAmount = document.getElementById('res-amount');
+/* Cursor */
+const cur = document.getElementById('cur'); const m = {x: -100, y: -100, cx: -100, cy: -100};
+addEventListener('pointermove', e => { m.x = e.clientX; m.y = e.clientY; });
+document.querySelectorAll('a,button').forEach(el => { 
+  el.addEventListener('pointerenter', () => cur.classList.add('hot')); 
+  el.addEventListener('pointerleave', () => cur.classList.remove('hot')); 
+});
 
-function updateROI() {
-  const appts = parseInt(rangeAppts.value);
-  const cost = parseInt(rangeCost.value);
-  const rate = parseInt(rangeRate.value) / 100;
+/* Arabic Numerals Helper */
+const ar = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 
-  lblAppts.textContent = appts;
-  lblCost.textContent = cost;
-  lblRate.textContent = Math.round(rate * 100);
+/* Story Horizontal Scroll */
+gsap.to("#track", {
+  x: () => -(document.getElementById("track").scrollWidth - window.innerWidth),
+  ease: "none",
+  scrollTrigger: {
+    trigger: "#story",
+    pin: true,
+    scrub: 1,
+    end: () => "+=" + document.getElementById("track").scrollWidth,
+    onUpdate: self => {
+      document.querySelector("#bar i").style.width = (self.progress * 100) + "%";
+    }
+  }
+});
 
-  // Monthly calculation: (Appts * 4 weeks) * Rate * Cost * 70% Recovery Rate
-  const monthlyLost = (appts * 4) * rate * cost;
-  const recovered = Math.round(monthlyLost * 0.70);
-
-  resAmount.textContent = recovered.toLocaleString('ar-SA') + ' ر.س';
+/* Generate Animated Dynamic Bars for Panel 2 */
+const barsContainer = document.getElementById('bars');
+if(barsContainer) {
+  for(let i = 0; i < 14; i++) {
+    const span = document.createElement('span');
+    if(i === 3 || i === 8 || i === 11) span.classList.add('hi');
+    span.style.animationDelay = (i * 0.2) + 's';
+    barsContainer.appendChild(span);
+  }
 }
 
-[rangeAppts, rangeCost, rangeRate].forEach(input => input.addEventListener('input', updateROI));
-updateROI();
+/* Sky Canvas Shader */
+const sky = document.getElementById('sky'), gl = sky.getContext('webgl', {antialias: false, alpha: false});
+const PAL = [
+  {n:'صباح الخير من الرياض', c:['#FFE3CC','#FFB4A2','#9AD4D6','#FFF4D6'], hi:'#1B2B33', cta:'#0B2230', ci:'#FFD98A'},
+  {n:'نهارك سعيد', c:['#EAF7F6','#8EDCE0','#FFE7A6','#FFFFFF'], hi:'#0B2A3C', cta:'#FF5A3C', ci:'#fff'},
+  {n:'مساء الخير من الرياض', c:['#FFD9A8','#FF7F66','#6C63C9','#FFE9B8'], hi:'#230F3B', cta:'#230F3B', ci:'#FFD98A'},
+  {n:'ليلة هادئة', c:['#1A2350','#2B4C9B','#0E7C86','#F5C86B'], hi:'#FFF6E5', cta:'#FF5A3C', ci:'#fff'}
+];
+const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2), 16) / 255);
+const hr = (+new Intl.DateTimeFormat('en-GB', {hour:'numeric', hour12:false, timeZone:'Asia/Riyadh'}).format(new Date())) % 24;
+let cc = PAL[0].c.map(hx), tc = cc;
+let inkRGB = '11,42,60';
+
+function setPal(i) {
+  const P = PAL[i]; tc = P.c.map(hx); inkRGB = hx(P.hi).map(v => Math.round(v*255)).join(',');
+  const st = document.getElementById('hero').style;
+  st.setProperty('--hi', P.hi); st.setProperty('--cta', P.cta); st.setProperty('--ci', P.ci);
+  document.getElementById('greet').textContent = P.n;
+  document.querySelectorAll('.times button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.p === i));
+}
+document.querySelectorAll('.times button').forEach(b => b.addEventListener('click', () => setPal(+b.dataset.p)));
+const first = hr >= 5 && hr < 10 ? 0 : hr < 16 ? 1 : hr < 19 ? 2 : 3; cc = PAL[first].c.map(hx); setPal(first);
+
+const mu = {x: .5, y: .5, sx: .5, sy: .5}; 
+addEventListener('pointermove', e => { mu.x = e.clientX / innerWidth; mu.y = 1 - e.clientY / innerHeight; });
+let U = {}, DPRs = 1;
+
+if(gl) {
+  const FS = `precision highp float;uniform vec2 R,M;uniform float T,B,P,V;uniform vec3 C1,C2,C3,C4;
+  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*n(p);p=p*2.03+1.7;a*=.5;}return v;}
+  void main(){
+    vec2 p=(gl_FragCoord.xy-.5*R)/R.y; vec2 m=(M-.5)*vec2(R.x/R.y,1.);
+    vec2 q=vec2(fbm(p*1.5+T*.05+m*.3),fbm(p*1.5+vec2(5.2,1.3)-T*.04));
+    vec2 r=vec2(fbm(p*2.+3.*q+T*.06),fbm(p*2.+3.*q+vec2(8.3,2.8)));
+    float f=fbm(p*1.6+2.5*r);
+    vec3 col=mix(C1,C2,clamp(f*1.5,0.,1.)); col=mix(col,C3,clamp(length(q)*.8,0.,1.)*.65); col=mix(col,C4,smoothstep(.6,1.,r.x)*.45);
+    vec2 o=p-(vec2(0.,.17)+m*.06);
+    float d=length(o)+(fbm(o*6.+T*.35)-.5)*.05, rad=.2+.025*B+.06*V;
+    float orb=1.-smoothstep(rad-.012,rad,d);
+    vec3 oc=mix(C4*1.08,mix(C4,C2,.5),smoothstep(0.,rad,d));
+    col=mix(col,oc,orb);
+    col+=C4*exp(-max(d-rad,0.)*5.)*(.28+.22*B)*(1.-orb);
+    col+=C4*(1.-smoothstep(0.,.02,abs(d-(rad+P*.45))))*(1.-P)*.6;
+    col+=(h(gl_FragCoord.xy+fract(T))-.5)*.035;
+    gl_FragColor=vec4(col,1.);}`;
+  const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}')); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr); gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const al = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(al); gl.vertexAttribPointer(al, 2, gl.FLOAT, false, 0, 0);
+  ['R','M','T','B','P','V','C1','C2','C3','C4'].forEach(k => U[k] = gl.getUniformLocation(pr, k));
+  const rs = () => { DPRs = Math.min(devicePixelRatio, 1.5); sky.width = sky.clientWidth * DPRs; sky.height = sky.clientHeight * DPRs; gl.viewport(0, 0, sky.width, sky.height); };
+  rs(); addEventListener('resize', rs);
+}
+
+/* Breathing Ritual System */
+let kick = 0;
+const hl = document.getElementById('hl'), sub = document.getElementById('sub'), bb = document.getElementById('breathe');
+const br = {on: false, t0: 0, v: 0, w: '', cyc: -1};
+const say = t => { if(hl.textContent !== t) hl.textContent = t; };
+bb.addEventListener('click', () => { 
+  if(br.on) { endBreath(false); return; } 
+  br.on = true; br.t0 = performance.now(); br.cyc = -1; bb.textContent = 'إيقاف'; sub.style.opacity = 0; 
+});
+function endBreath(done) { 
+  br.on = false; bb.textContent = 'تنفّس معنا ٣٠ ثانية'; sub.style.opacity = .9;
+  if(done) { say('الآن أنت أهدأ.'); sub.textContent = 'هكذا يتمنى مرضاك أن يشعروا حين يحجزون عندك: بلا انتظار وبلا توتر.'; } 
+  else { say('خذ نفساً.'); sub.textContent = 'ساهل يتولى مواعيد عيادتك وغيابها ورسائلها، لتتفرغ لمرضاك.'; } 
+}
+const ease = x => x * x * (3 - 2 * x);
+
+gsap.ticker.add(() => {
+  m.cx += (m.x - m.cx) * .2; m.cy += (m.y - m.cy) * .2; 
+  cur.style.transform = `translate(${m.cx}px,${m.cy}px)`;
+  if(!gl || sky.getBoundingClientRect().bottom < 0) return;
+  const now = performance.now(), t = now / 1000; mu.sx += (mu.x - mu.sx) * .04; mu.sy += (mu.y - mu.sy) * .04;
+  let target = 0;
+  if(br.on) { 
+    const e = (now - br.t0) / 1000; 
+    if(e >= 30) { endBreath(true); } 
+    else { 
+      const ph = e % 10, cy = Math.floor(e / 10);
+      if(ph < 4) { target = ease(ph / 4); say('شهيق…'); } 
+      else if(ph < 5) { target = 1; say('ثبّت'); } 
+      else { target = 1 - ease((ph - 5) / 5); say('زفير…'); }
+      if(cy !== br.cyc) { br.cyc = cy; if(navigator.vibrate) navigator.vibrate(40); } 
+    } 
+  }
+  br.v += (target - br.v) * .12;
+  const ph = (t * 64 / 60) % 1, b0 = reduce ? 0 : Math.max(Math.exp(-Math.pow(ph * 7, 2)), .7 * Math.exp(-Math.pow((ph - .22) * 8, 2))) * (br.on ? .25 : 1), beat = Math.max(b0, kick); kick *= .92;
+  cc.forEach((v, i) => v.forEach((x, j) => v[j] = x + (tc[i][j] - x) * .04));
+  gl.uniform2f(U.R, sky.width, sky.height); gl.uniform2f(U.M, mu.sx, mu.sy); gl.uniform1f(U.T, t * (reduce ? .15 : 1)); gl.uniform1f(U.B, beat); gl.uniform1f(U.P, reduce ? 1 : ph); gl.uniform1f(U.V, br.v);
+  ['C1','C2','C3','C4'].forEach((k, i) => gl.uniform3f(U[k], ...cc[i]));
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); 
+});
+
+/* Appointment Grid Canvas Overlay */
+const fx = document.getElementById('fx'), fc = fx.getContext('2d'), pctEl = document.getElementById('pct'), cntEl = document.getElementById('cnt');
+let FW, FH, FD, csz = 96, cols = 0, rows = 0, cells = [], WP = [], sparks = [], rips = [], restored = 0, fauto = false, lastPct = -1, fl = performance.now(), fcur = 1, word = {cy: 0, fs: 0};
+const fp = {x: -999, y: -999, on: false};
+const rr = (x, y, w, h, r) => { fc.beginPath(); if(fc.roundRect) fc.roundRect(x,y,w,h,r); else fc.rect(x,y,w,h); };
+const allowed = (x, y) => y < FH * .6 && (((x - FW / 2) / (word.fs * 1.25)) ** 2 + ((y - word.cy) / (word.fs * .8)) ** 2) > 1;
+
+function wsample(txt, step) { 
+  const o = document.createElement('canvas'); o.width = FW; o.height = FH; const c = o.getContext('2d');
+  c.font = `900 ${word.fs}px Tajawal`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.direction = 'rtl'; c.fillText(txt, FW / 2, word.cy);
+  const d = c.getImageData(0, 0, FW, FH).data, pts = []; 
+  for(let y = 0; y < FH; y += step) for(let x = 0; x < FW; x += step) if(d[(y * FW + x) * 4 + 3] > 128) pts.push([x + (Math.random() - .5) * step * .6, y + (Math.random() - .5) * step * .6]); 
+  return pts; 
+}
+
+function fbuild() { 
+  FD = Math.min(devicePixelRatio, 2); FW = fx.clientWidth; FH = fx.clientHeight; fx.width = FW * FD; fx.height = FH * FD;
+  const t = document.createElement('canvas').getContext('2d'); t.font = '900 200px Tajawal';
+  const w = Math.max(t.measureText('غياب').width, t.measureText('حضور').width); word.fs = Math.min(FW * .5 / w * 200, FH * .27); word.cy = FH * .335;
+  const step = Math.max(4, Math.round(word.fs / 40)); let A = wsample('غياب', step), B = wsample('حضور', step); const n = Math.min(A.length, B.length);
+  const sh = a => { for(let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
+  A = sh(A).sort((p, q) => p[0] - q[0]); B = sh(B).sort((p, q) => p[0] - q[0]);
+  WP = A.map((a, i) => ({ax: a[0], ay: a[1], bx: B[i][0], by: B[i][1], x: a[0], y: a[1]}));
+  csz = Math.max(72, FW / 14); cols = Math.ceil(FW / csz); rows = Math.ceil(FH / csz); cells = [];
+  for(let r = 0; r < rows; r++) for(let c = 0; c < cols; c++) { const x = (c + .5) * csz, y = (r + .5) * csz; cells.push({c, r, x, y, miss: allowed(x, y) && Math.random() < .14, k: 1, p: Math.random() * 6}); } 
+}
+
+(document.fonts ? document.fonts.load('900 200px Tajawal') : Promise.resolve()).then(fbuild, fbuild);
+let frt; addEventListener('resize', () => { clearTimeout(frt); frt = setTimeout(fbuild, 200); });
+
+function restore(cell) { 
+  if(!cell.miss) return; cell.miss = false; cell.k = 0; restored++; cntEl.textContent = ar(restored);
+  const totalMissed = cells.filter(c => c.miss).length + restored;
+  const ratio = Math.round((restored / (totalMissed || 1)) * 100);
+  pctEl.textContent = ar(ratio);
+  rips.push({x: cell.x, y: cell.y, t: 0}); kick = 1; 
+}
+
+const cellAt = (x, y) => cells[Math.floor(y / csz) * cols + Math.floor(x / csz)];
+const fset = e => { 
+  const b = fx.getBoundingClientRect(); fp.x = e.clientX - b.left; fp.y = e.clientY - b.top; fp.on = !br.on;
+  const c = cellAt(fp.x, fp.y); if(fp.on && c && c.miss) restore(c); cur.classList.toggle('hot', !!(c && c.miss)); 
+};
+fx.addEventListener('pointermove', fset); fx.addEventListener('pointerdown', fset); 
+fx.addEventListener('pointerleave', () => { fp.on = false; cur.classList.remove('hot'); });
+
+const ab = document.getElementById('auto');
+ab.addEventListener('click', () => { fauto = !fauto; ab.setAttribute('aria-pressed', fauto); ab.textContent = fauto ? 'ساهل يعمل الآن ✓' : 'دع ساهل يتولى'; });
+
+setInterval(() => { 
+  if(!cells.length || br.on) return; 
+  const miss = cells.filter(c => c.miss);
+  if(fauto && miss.length) restore(miss[Math.random() * miss.length | 0]);
+  if(miss.length < 14) { const c = cells[Math.random() * cells.length | 0]; if(c && !c.miss && allowed(c.x, c.y)) { c.miss = true; c.k = 1; } } 
+}, 420);
+
+function fxFrame(now) { 
+  fc.setTransform(FD, 0, 0, FD, 0, 0); fc.clearRect(0, 0, FW, FH); const g = 7, s = csz - g;
+  for(const c of cells) { 
+    c.k += (1 - c.k) * .07; const d = Math.hypot(c.x - fp.x, c.y - fp.y), near = fp.on ? Math.max(0, 1 - d / 150) : 0, sc = 1 + near * .1, w = s * sc, x = c.x - w / 2, y = c.y - w / 2;
+    const wd = ((c.x - FW / 2) / (word.fs * 1.5)) ** 2 + ((c.y - word.cy) / word.fs) ** 2, mask = 1 - .85 * Math.exp(-wd);
+    fc.globalAlpha = mask;
+    if(c.miss) { 
+      const pu = .5 + .5 * Math.sin(now / 380 + c.p); 
+      fc.fillStyle = `rgba(255,90,60,${.08 + pu * .16})`; rr(x, y, w, w, 16); fc.fill(); 
+      fc.strokeStyle = '#FF5A3C'; fc.lineWidth = 2; fc.setLineDash([6, 6]); fc.stroke(); fc.setLineDash([]); 
+    } else { 
+      fc.fillStyle = `rgba(${inkRGB},${.07 + near * .14 + (1 - c.k) * .3})`; rr(x, y, w, w, 16); fc.fill(); 
+    }
+  }
+  fc.globalAlpha = 1;
+  requestAnimationFrame(fxFrame);
+}
+requestAnimationFrame(fxFrame);
+
+/* 2030 Countdown Clock */
+function updateCountdown() {
+  const target = new Date('2030-01-01T00:00:00+03:00').getTime();
+  const diff = target - new Date().getTime();
+  if(diff > 0) {
+    document.getElementById('cd').textContent = ar(Math.floor(diff / (1000 * 60 * 60 * 24)));
+    document.getElementById('ch').textContent = ar(Math.floor((diff / (1000 * 60 * 60)) % 24));
+    document.getElementById('cm').textContent = ar(Math.floor((diff / 1000 / 60) % 60));
+    document.getElementById('cs').textContent = ar(Math.floor((diff / 1000) % 60));
+  }
+}
+setInterval(updateCountdown, 1000); updateCountdown();
+
+/* Date Banner */
+const now = new Date();
+document.getElementById('greg').textContent = new Intl.DateTimeFormat('ar-SA-u-nu-latn', {dateStyle:'full'}).format(now);
+document.getElementById('hijri').textContent = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-uma', {dateStyle:'full'}).format(now);
 </script>
 </body>
 </html>
