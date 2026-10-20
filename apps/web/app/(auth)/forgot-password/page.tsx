@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   return (
@@ -14,20 +14,8 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
-          أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور خلال دقائق.
+          استعادة كلمة المرور غير مفعّلة حالياً. تواصل مع مسؤول النظام لاستعادة الوصول.
         </div>
-
-        <form className="mt-6 space-y-5">
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-slate-700">البريد الإلكتروني</span>
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3">
-              <Mail className="h-4 w-4 text-slate-400" />
-              <input type="email" defaultValue="admin@sahelclinic.sa" className="w-full bg-transparent px-2 py-3 text-right outline-none" />
-            </div>
-          </label>
-
-          <button type="button" className="btn-primary w-full !rounded-2xl !py-3.5">إرسال رابط الاستعادة</button>
-        </form>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">
           <ShieldCheck className="h-4 w-4 text-emerald-600" />

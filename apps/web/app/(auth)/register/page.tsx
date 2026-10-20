@@ -1,7 +1,43 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 import { Building2, CalendarCheck2, Mail, UserRound } from "lucide-react";
+import { registerClinic } from "@/lib/api";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setPending(true);
+    const formData = new FormData(event.currentTarget);
+    const fullName = [
+      String(formData.get("first_name") || "").trim(),
+      String(formData.get("last_name") || "").trim()
+    ].filter(Boolean).join(" ");
+
+    try {
+      await registerClinic({
+        full_name: fullName,
+        clinic_name: String(formData.get("clinic_name")),
+        slug: String(formData.get("slug")).trim(),
+        email: String(formData.get("email")),
+        phone: String(formData.get("phone") || "").trim() || undefined,
+        password: String(formData.get("password"))
+      });
+      router.push("/dashboard");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "تعذر إنشاء الحساب.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft">
@@ -31,42 +67,56 @@ export default function RegisterPage() {
               <Link href="/" className="text-sm font-semibold text-slate-500">الرئيسية</Link>
             </div>
 
-            <form className="space-y-5">
+            <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-slate-700">الاسم الأول</span>
-                  <input type="text" defaultValue="سارة" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
+                  <input name="first_name" type="text" autoComplete="given-name" required maxLength={60} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-slate-700">اسم العائلة</span>
-                  <input type="text" defaultValue="الشمري" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
+                  <input name="last_name" type="text" autoComplete="family-name" required maxLength={60} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
                 </label>
               </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">اسم العيادة</span>
+                <input name="clinic_name" type="text" autoComplete="organization" required maxLength={160} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">معرّف العيادة</span>
+                <input name="slug" type="text" required minLength={3} maxLength={63} pattern="[a-z0-9]+(-[a-z0-9]+)*" autoComplete="off" dir="ltr" placeholder="sahel-clinic-riyadh" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-left outline-none" />
+                <span className="mt-1 block text-xs text-slate-500">أحرف إنجليزية صغيرة وأرقام وشرطة، ويجب أن يكون فريداً.</span>
+              </label>
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">البريد الإلكتروني</span>
                 <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3">
                   <Mail className="h-4 w-4 text-slate-400" />
-                  <input type="email" defaultValue="sara@sahelclinic.sa" className="w-full bg-transparent px-2 py-3 text-right outline-none" />
+                  <input name="email" type="email" autoComplete="email" required maxLength={254} className="w-full bg-transparent px-2 py-3 text-right outline-none" />
                 </div>
               </label>
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">رقم الهاتف</span>
-                <input type="tel" defaultValue="9665xxxxxxxx" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
+                <input name="phone" type="tel" autoComplete="tel" maxLength={32} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
               </label>
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">كلمة المرور</span>
-                <input type="password" defaultValue="********" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
+                <input name="password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-right outline-none" />
               </label>
 
               <div className="flex items-center gap-2 text-sm text-slate-600">
-                <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-slate-300 accent-sky-600" />
+                <input name="terms" type="checkbox" required className="h-4 w-4 rounded border-slate-300 accent-sky-600" />
                 أوافق على <Link href="/terms" className="font-semibold text-sky-700">الشروط</Link> و <Link href="/privacy" className="font-semibold text-sky-700">الخصوصية</Link>
               </div>
 
-              <Link href="/plan" className="btn-primary w-full !rounded-2xl !py-3.5">التالي</Link>
+              {error && <p role="alert" className="text-sm font-semibold text-red-600">{error}</p>}
+              <button type="submit" disabled={pending} className="btn-primary w-full !rounded-2xl !py-3.5 disabled:cursor-not-allowed disabled:opacity-60">
+                {pending ? "جارٍ إنشاء الحساب..." : "إنشاء الحساب"}
+              </button>
             </form>
           </div>
         </div>

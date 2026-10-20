@@ -5,11 +5,12 @@ services:
     environment:
       POSTGRES_DB: sahels
       POSTGRES_USER: sahels
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sahels_dev_pass}
       TZ: Asia/Riyadh
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sahels"]
       interval: 5s
@@ -19,67 +20,36 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:-sahels_redis} --appendonly yes
     volumes:
       - redisdata:/data
+    ports:
+      - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-sahels_redis}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  bot:
-    build: ./bot
+  api:
+    build: ./backend
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-    env_file: .env
+      redis: { condition: service_healthy }
     environment:
-      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD}@postgres:5432/sahels
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD:-sahels_dev_pass}@postgres:5432/sahels
+      REDIS_URL: redis://:${REDIS_PASSWORD:-sahels_redis}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      BIND_ADDR: 0.0.0.0:8080
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-sahel-verify}
       TZ: Asia/Riyadh
-    ports: ["127.0.0.1:3000:3000"]
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    deploy:
-      resources:
-        limits:
-          memory: ${BOT_MEM_LIMIT:-1G}
-
-  central:
-    build: ./central
-    restart: unless-stopped
-    depends_on:
-      postgres: { condition: service_healthy }
-    env_file: .env
-    environment:
-      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD}@postgres:5432/sahels
-      TZ: Asia/Riyadh
-    ports: ["127.0.0.1:4000:4000"]
-
-  agent:
-    build: ./agent
-    restart: unless-stopped
-    depends_on:
-      postgres: { condition: service_healthy }
-    env_file: .env
-    environment:
-      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD}@postgres:5432/sahels
-      TZ: Asia/Riyadh
-
-  nocodb:
-    image: nocodb/nocodb:latest
-    restart: unless-stopped
-    depends_on:
-      postgres: { condition: service_healthy }
-    environment:
-      NC_DB: pg://postgres:5432?u=sahels&p=${POSTGRES_PASSWORD}&d=sahels
-    ports: ["127.0.0.1:8080:8080"]
-    volumes:
-      - nocodbdata:/usr/app/data
+      RUST_LOG: sahel_api=info,tower_http=info
+    ports:
+      - "127.0.0.1:8080:8080"
 
 volumes:
   pgdata:
   redisdata:
-  nocodbdata:

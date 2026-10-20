@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { api, ApiError, CurrentSession, logout } from "@/lib/api";
 import {
   Bell,
   CalendarDays,
@@ -31,6 +33,72 @@ const navItems = [
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSession() {
+      if (
+        !localStorage.getItem("sahel_access") &&
+        !localStorage.getItem("sahel_refresh")
+      ) {
+        router.replace("/login");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const currentSession = await api<CurrentSession>("/auth/me");
+        if (active) setSession(currentSession);
+      } catch (loadError) {
+        if (loadError instanceof ApiError && loadError.status === 401) {
+          router.replace("/login");
+        } else if (active) {
+          setError("تعذر الاتصال بخدمة تسجيل الدخول. حاول تحديث الصفحة.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadSession();
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  async function handleLogout() {
+    setError("");
+    try {
+      await logout();
+      router.replace("/login");
+    } catch (logoutError) {
+      if (logoutError instanceof ApiError && logoutError.status === 401) {
+        router.replace("/login");
+      } else {
+        setError(logoutError instanceof Error ? logoutError.message : "تعذر تسجيل الخروج.");
+      }
+    }
+  }
+
+  if (loading) {
+    return <main className="flex min-h-screen items-center justify-center text-slate-600">جارٍ التحقق من الجلسة...</main>;
+  }
+
+  if (error && !session) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+        <p role="alert" className="text-slate-700">{error}</p>
+        <button onClick={() => window.location.reload()} className="btn-primary">إعادة المحاولة</button>
+      </main>
+    );
+  }
+
+  if (!session) return null;
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -46,7 +114,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="mb-6 rounded-2xl border border-slate-800 bg-white/5 p-3">
             <div className="text-xs text-slate-400">العيادة الحالية</div>
-            <div className="mt-2 text-lg font-black">أسنان الراشد</div>
+            <div className="mt-2 text-lg font-black">{session.clinic_name || "إدارة النظام"}</div>
             <div className="text-xs text-emerald-300">مستوى نمو</div>
           </div>
 
@@ -94,11 +162,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
               <div className="flex items-center gap-3">
                 <button className="btn-secondary">AR</button>
-                <button className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">الملف الشخصي</button>
+                <span className="hidden text-sm font-semibold text-slate-700 sm:block">{session.full_name}</span>
+                <button onClick={handleLogout} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">تسجيل الخروج</button>
               </div>
             </div>
           </header>
 
+          {error && <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           {children}
         </main>
       </div>

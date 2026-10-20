@@ -1,7 +1,35 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 import { Lock, Mail } from "lucide-react";
+import { login } from "@/lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setPending(true);
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      await login(
+        String(formData.get("email")),
+        String(formData.get("password"))
+      );
+      router.push("/dashboard");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "تعذر تسجيل الدخول.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft lg:grid-cols-2">
@@ -41,12 +69,12 @@ export default function LoginPage() {
             <Link href="/" className="text-sm font-semibold text-slate-500">الرئيسية</Link>
           </div>
 
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">البريد الإلكتروني</span>
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3">
                 <Mail className="h-4 w-4 text-slate-400" />
-                <input type="email" defaultValue="admin@sahelclinic.sa" className="w-full bg-transparent px-2 py-3 text-right outline-none" />
+                <input name="email" type="email" autoComplete="email" required maxLength={254} className="w-full bg-transparent px-2 py-3 text-right outline-none" />
               </div>
             </label>
 
@@ -54,30 +82,19 @@ export default function LoginPage() {
               <span className="mb-2 block text-sm font-semibold text-slate-700">كلمة المرور</span>
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3">
                 <Lock className="h-4 w-4 text-slate-400" />
-                <input type="password" defaultValue="********" className="w-full bg-transparent px-2 py-3 text-right outline-none" />
+                <input name="password" type="password" autoComplete="current-password" required className="w-full bg-transparent px-2 py-3 text-right outline-none" />
               </div>
             </label>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-slate-600">
-                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-sky-600" defaultChecked />
-                تذكرني
-              </label>
-              <Link href="/forgot-password" className="font-semibold text-sky-700">نسيت كلمة المرور؟</Link>
+            <div className="flex justify-end text-sm">
+              <span className="text-slate-400">استعادة كلمة المرور قريبًا</span>
             </div>
 
-            <Link href="/dashboard" className="btn-primary w-full !rounded-2xl !py-3.5">تسجيل الدخول</Link>
+            {error && <p role="alert" className="text-sm font-semibold text-red-600">{error}</p>}
+            <button type="submit" disabled={pending} className="btn-primary w-full !rounded-2xl !py-3.5 disabled:cursor-not-allowed disabled:opacity-60">
+              {pending ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
+            </button>
 
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <div className="h-px flex-1 bg-slate-200" />
-              أو
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button type="button" className="btn-secondary !rounded-2xl">Google</button>
-              <button type="button" className="btn-secondary !rounded-2xl">Microsoft</button>
-            </div>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-600">
