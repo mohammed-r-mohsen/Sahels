@@ -35,13 +35,21 @@ curl -X POST http://localhost:8080/auth/register \
 | POST | `/auth/register` | إنشاء عيادة + مدير |
 | POST | `/auth/login` | JWT + Refresh |
 | GET | `/clinic` | ملف العيادة |
-| GET/POST | `/clinic/doctors` | الأطباء |
+| PUT | `/clinic` | تحديث الملف والإعدادات والقنوات |
+| GET/POST | `/clinic/doctors` | قائمة الأطباء وإنشاء طبيب |
+| PUT | `/clinic/doctors/{id}` | تحديث التخصص والسعة ومدة الموعد |
+| GET/PUT | `/clinic/doctors/{id}/schedule` | جدول الطبيب الأسبوعي |
+| GET/POST | `/clinic/staff` | قائمة الموظفين وإضافة حساب |
+| PUT | `/clinic/staff/{id}` | تحديث صلاحية أو حالة موظف |
+| GET/PUT | `/clinic/staff/{id}/shifts` | الورديات الأسبوعية |
 | GET/POST | `/appointments` | المواعيد |
 | GET | `/appointments/availability` | الأوقات المتاحة |
 | GET/POST | `/appointments/waiting-list` | قائمة الانتظار |
 | GET | `/analytics/overview` | ملخص تشغيلي |
 | POST | `/webhooks/meta` | واتساب/إنستغرام |
 | GET | `/billing/plans` | خطط الاشتراك |
+
+يمكن لمدير العيادة إدارة هذه الإعدادات من صفحتي الأطباء والإعدادات، وصفحة فريق العيادة `/staff`. تتطلب حسابات الفريق كلمة مرور مؤقتة لا تقل عن 12 حرفاً، ويجب تسليمها للموظف عبر قناة آمنة.
 
 ## الهيكل
 

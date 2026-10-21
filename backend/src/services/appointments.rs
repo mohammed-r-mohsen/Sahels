@@ -1,4 +1,6 @@
-use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveTime, Timelike, Utc};
+use chrono::{
+    DateTime, Datelike, Duration, LocalResult, NaiveDate, NaiveTime, TimeZone, Timelike, Utc,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -35,9 +37,17 @@ pub async fn availability(
 ) -> AppResult<Vec<Slot>> {
     let clinic_id = user.require_clinic()?;
     let mut tx = begin_tenant(pool, Some(clinic_id), user.is_super()).await?;
+    let clinic_timezone: String =
+        sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+            .bind(clinic_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    let timezone: chrono_tz::Tz = clinic_timezone
+        .parse()
+        .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
 
-    let doctor = sqlx::query_as::<_, (i32,)>(
-        "SELECT slot_minutes FROM doctors WHERE id = $1 AND clinic_id = $2 AND is_active",
+    let doctor = sqlx::query_as::<_, (i32, i32)>(
+        "SELECT slot_minutes, capacity_per_slot FROM doctors WHERE id = $1 AND clinic_id = $2 AND is_active",
     )
     .bind(doctor_id)
     .bind(clinic_id)
@@ -46,6 +56,7 @@ pub async fn availability(
     .ok_or_else(|| AppError::NotFound("الطبيب غير موجود".into()))?;
 
     let slot_minutes = doctor.0;
+    let capacity = doctor.1;
     let weekday = date.weekday().num_days_from_sunday() as i16;
 
     let schedules: Vec<(NaiveTime, NaiveTime)> = sqlx::query_as(
@@ -60,11 +71,15 @@ pub async fn availability(
     .fetch_all(&mut *tx)
     .await?;
 
-    let day_start = date
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_utc();
-    let day_end = day_start + Duration::days(1);
+    let next_date = date
+        .succ_opt()
+        .ok_or_else(|| AppError::BadRequest("التاريخ غير صالح".into()))?;
+    let day_start = local_datetime_to_utc(&timezone, date, NaiveTime::MIN);
+    let day_end = local_datetime_to_utc(&timezone, next_date, NaiveTime::MIN);
+    let (Some(day_start), Some(day_end)) = (day_start, day_end) else {
+        tx.commit().await?;
+        return Ok(Vec::new());
+    };
 
     let booked: Vec<(DateTime<Utc>, DateTime<Utc>)> = sqlx::query_as(
         r#"
@@ -84,20 +99,31 @@ pub async fn availability(
 
     let mut slots = Vec::new();
     for (start_t, end_t) in schedules {
-        let mut cursor = date.and_time(start_t).and_utc();
-        let window_end = date.and_time(end_t).and_utc();
+        let mut local_cursor = date.and_time(start_t);
+        let local_window_end = date.and_time(end_t);
         let step = Duration::minutes(slot_minutes as i64);
 
-        while cursor + step <= window_end {
-            let ends = cursor + step;
-            let overlaps = booked.iter().any(|(b_start, b_end)| cursor < *b_end && ends > *b_start);
-            if !overlaps && cursor > Utc::now() {
+        while local_cursor + step <= local_window_end {
+            let local_end = local_cursor + step;
+            let Some(cursor) = local_datetime_to_utc(&timezone, date, local_cursor.time()) else {
+                local_cursor += step;
+                continue;
+            };
+            let Some(ends) = local_datetime_to_utc(&timezone, date, local_end.time()) else {
+                local_cursor += step;
+                continue;
+            };
+            let overlapping_bookings = booked
+                .iter()
+                .filter(|(b_start, b_end)| cursor < *b_end && ends > *b_start)
+                .count();
+            if overlapping_bookings < capacity as usize && cursor > Utc::now() {
                 slots.push(Slot {
                     starts_at: cursor,
                     ends_at: ends,
                 });
             }
-            cursor = ends;
+            local_cursor += step;
         }
     }
 
@@ -111,6 +137,14 @@ pub async fn create(
 ) -> AppResult<Appointment> {
     let clinic_id = user.require_clinic()?;
     let mut tx = begin_tenant(pool, Some(clinic_id), user.is_super()).await?;
+    let clinic_timezone: String =
+        sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+            .bind(clinic_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    let timezone: chrono_tz::Tz = clinic_timezone
+        .parse()
+        .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
 
     let status: String =
         sqlx::query_scalar("SELECT subscription_status FROM clinics WHERE id = $1")
@@ -129,8 +163,8 @@ pub async fn create(
         .execute(&mut *tx)
         .await?;
 
-    let slot_minutes: i32 = sqlx::query_scalar(
-        "SELECT slot_minutes FROM doctors WHERE id = $1 AND clinic_id = $2 AND is_active",
+    let doctor: (i32, i32) = sqlx::query_as(
+        "SELECT slot_minutes, capacity_per_slot FROM doctors WHERE id = $1 AND clinic_id = $2 AND is_active",
     )
     .bind(input.doctor_id)
     .bind(clinic_id)
@@ -138,49 +172,64 @@ pub async fn create(
     .await?
     .ok_or_else(|| AppError::NotFound("الطبيب غير موجود".into()))?;
 
+    let slot_minutes = doctor.0;
+    let capacity = doctor.1;
+    if input.starts_at.second() != 0 || input.starts_at.nanosecond() != 0 {
+        return Err(AppError::BadRequest("يجب أن يبدأ الموعد على حدّ الدقيقة".into()));
+    }
     let ends_at = input.starts_at + Duration::minutes(slot_minutes as i64);
 
     // Validate against schedule
-    let local_date = input.starts_at.date_naive();
+    let local_start = input.starts_at.with_timezone(&timezone);
+    let local_end = ends_at.with_timezone(&timezone);
+    let local_date = local_start.date_naive();
     let weekday = local_date.weekday().num_days_from_sunday() as i16;
     let start_time = NaiveTime::from_hms_opt(
-        input.starts_at.hour(),
-        input.starts_at.minute(),
+        local_start.hour(),
+        local_start.minute(),
         0,
     )
     .unwrap();
-    let end_time = NaiveTime::from_hms_opt(ends_at.hour(), ends_at.minute(), 0).unwrap();
+    if local_end.date_naive() != local_date {
+        return Err(AppError::BadRequest(
+            "لا يمكن أن يمتد الموعد خارج يوم عمل الطبيب".into(),
+        ));
+    }
+    let end_time = NaiveTime::from_hms_opt(local_end.hour(), local_end.minute(), 0).unwrap();
 
-    let in_schedule: bool = sqlx::query_scalar(
+    let schedules: Vec<(NaiveTime, NaiveTime)> = sqlx::query_as(
         r#"
-        SELECT EXISTS(
-          SELECT 1 FROM doctor_schedules
-          WHERE doctor_id = $1 AND weekday = $2
-            AND start_time <= $3 AND end_time >= $4
-        )
+        SELECT start_time, end_time FROM doctor_schedules
+        WHERE doctor_id = $1 AND weekday = $2
+          AND start_time <= $3 AND end_time >= $4
         "#,
     )
     .bind(input.doctor_id)
     .bind(weekday)
     .bind(start_time)
     .bind(end_time)
-    .fetch_one(&mut *tx)
+    .fetch_all(&mut *tx)
     .await?;
 
-    if !in_schedule {
+    let aligned = schedules.iter().any(|(schedule_start, _)| {
+        start_time
+            .signed_duration_since(*schedule_start)
+            .num_seconds()
+            % (slot_minutes as i64 * 60)
+            == 0
+    });
+    if !aligned {
         return Err(AppError::BadRequest(
-            "الوقت خارج أوقات عمل الطبيب".into(),
+            "الوقت خارج أوقات عمل الطبيب أو لا يطابق بداية فترة حجز".into(),
         ));
     }
 
-    let conflict: bool = sqlx::query_scalar(
+    let overlapping_bookings: i64 = sqlx::query_scalar(
         r#"
-        SELECT EXISTS(
-          SELECT 1 FROM appointments
-          WHERE doctor_id = $1
-            AND status IN ('pending','confirmed','waiting')
-            AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
-        )
+        SELECT COUNT(*) FROM appointments
+        WHERE doctor_id = $1
+          AND status IN ('pending','confirmed','waiting')
+          AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
         "#,
     )
     .bind(input.doctor_id)
@@ -189,7 +238,7 @@ pub async fn create(
     .fetch_one(&mut *tx)
     .await?;
 
-    if conflict {
+    if overlapping_bookings >= i64::from(capacity) {
         return Err(AppError::Conflict("الموعد محجوز مسبقاً".into()));
     }
 
@@ -221,15 +270,7 @@ pub async fn create(
     .bind(&input.service)
     .bind(&input.notes)
     .fetch_one(&mut *tx)
-    .await
-    .map_err(|e| match e {
-        sqlx::Error::Database(db)
-            if db.constraint() == Some("appointments_no_overlap") =>
-        {
-            AppError::Conflict("الموعد محجوز مسبقاً".into())
-        }
-        other => AppError::from(other),
-    })?;
+    .await?;
 
     sqlx::query(
         r#"
@@ -299,6 +340,55 @@ pub async fn update_status(
     let clinic_id = user.require_clinic()?;
     let mut tx = begin_tenant(pool, Some(clinic_id), user.is_super()).await?;
 
+    let existing: Option<(Uuid, DateTime<Utc>, DateTime<Utc>, String)> = sqlx::query_as(
+        r#"
+        SELECT doctor_id, starts_at, ends_at, status::text
+        FROM appointments
+        WHERE id = $1 AND clinic_id = $2
+        FOR UPDATE
+        "#,
+    )
+    .bind(appointment_id)
+    .bind(clinic_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    let (doctor_id, starts_at, ends_at, previous_status) =
+        existing.ok_or_else(|| AppError::NotFound("الموعد غير موجود".into()))?;
+
+    sqlx::query("SELECT pg_advisory_xact_lock($1)")
+        .bind(advisory_key(doctor_id))
+        .execute(&mut *tx)
+        .await?;
+
+    if matches!(status, "pending" | "confirmed" | "waiting")
+        && !matches!(previous_status.as_str(), "pending" | "confirmed" | "waiting")
+    {
+        let capacity: i32 = sqlx::query_scalar("SELECT capacity_per_slot FROM doctors WHERE id = $1 AND clinic_id = $2")
+            .bind(doctor_id)
+            .bind(clinic_id)
+            .fetch_one(&mut *tx)
+            .await?;
+        let overlapping: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*) FROM appointments
+            WHERE doctor_id = $1 AND id <> $2
+              AND status IN ('pending', 'confirmed', 'waiting')
+              AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
+            "#,
+        )
+        .bind(doctor_id)
+        .bind(appointment_id)
+        .bind(starts_at)
+        .bind(ends_at)
+        .fetch_one(&mut *tx)
+        .await?;
+        if overlapping >= i64::from(capacity) {
+            return Err(AppError::Conflict(
+                "لا يمكن إعادة تفعيل الموعد لأن سعة الطبيب ممتلئة".into(),
+            ));
+        }
+    }
+
     let appt = sqlx::query_as::<_, Appointment>(
         r#"
         UPDATE appointments
@@ -315,11 +405,13 @@ pub async fn update_status(
     .await?
     .ok_or_else(|| AppError::NotFound("الموعد غير موجود".into()))?;
 
-    if status == "cancelled" {
+    if status == "cancelled"
+        && matches!(previous_status.as_str(), "pending" | "confirmed" | "waiting")
+    {
         waiting_list::promote_on_cancel(&mut tx, clinic_id, appt.doctor_id, appt.starts_at).await?;
     }
 
-    if status == "no_show" {
+    if status == "no_show" && previous_status != "no_show" {
         sqlx::query(
             "UPDATE patients SET no_show_count = no_show_count + 1 WHERE id = $1",
         )
@@ -328,7 +420,7 @@ pub async fn update_status(
         .await?;
     }
 
-    if status == "completed" {
+    if status == "completed" && previous_status != "completed" {
         sqlx::query("UPDATE patients SET visit_count = visit_count + 1 WHERE id = $1")
             .bind(appt.patient_id)
             .execute(&mut *tx)
@@ -365,9 +457,23 @@ async fn upsert_patient(
     Ok(patient)
 }
 
-fn advisory_key(doctor_id: Uuid) -> i64 {
+pub(crate) fn advisory_key(doctor_id: Uuid) -> i64 {
     let bytes = doctor_id.as_bytes();
     i64::from_be_bytes([
         bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
     ])
+}
+
+fn local_datetime_to_utc(
+    timezone: &chrono_tz::Tz,
+    date: NaiveDate,
+    time: NaiveTime,
+) -> Option<DateTime<Utc>> {
+    match timezone.from_local_datetime(&date.and_time(time)) {
+        LocalResult::Single(value) => Some(value.with_timezone(&Utc)),
+        LocalResult::Ambiguous(first, second) => {
+            Some(first.min(second).with_timezone(&Utc))
+        }
+        LocalResult::None => None,
+    }
 }

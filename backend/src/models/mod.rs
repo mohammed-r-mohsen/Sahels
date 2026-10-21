@@ -13,6 +13,7 @@ pub struct Clinic {
     pub address: Option<String>,
     pub timezone: String,
     pub reminder_hours: i32,
+    pub channels: serde_json::Value,
     pub plan_id: Option<String>,
     pub subscription_status: String,
     pub subscription_ends_at: Option<DateTime<Utc>>,
@@ -63,8 +64,31 @@ pub struct Doctor {
     pub full_name: String,
     pub specialty: Option<String>,
     pub slot_minutes: i32,
+    pub capacity_per_slot: i32,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct StaffMember {
+    pub id: Uuid,
+    pub clinic_id: Uuid,
+    pub email: String,
+    pub full_name: String,
+    pub phone: Option<String>,
+    pub role: String,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct StaffShift {
+    pub id: Uuid,
+    pub clinic_id: Uuid,
+    pub user_id: Uuid,
+    pub weekday: i16,
+    pub start_time: NaiveTime,
+    pub end_time: NaiveTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

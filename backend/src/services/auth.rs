@@ -340,7 +340,7 @@ pub async fn current_session(
     })
 }
 
-fn normalize_email(email: &str) -> AppResult<String> {
+pub(crate) fn normalize_email(email: &str) -> AppResult<String> {
     let email = email.trim().to_ascii_lowercase();
     let Some((local, domain)) = email.split_once('@') else {
         return Err(AppError::BadRequest("البريد الإلكتروني غير صالح".into()));

@@ -92,7 +92,15 @@ pub async fn promote_on_cancel(
     doctor_id: Uuid,
     starts_at: DateTime<Utc>,
 ) -> AppResult<()> {
-    let desired = starts_at.date_naive();
+    let clinic_timezone: String =
+        sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+            .bind(clinic_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    let timezone: chrono_tz::Tz = clinic_timezone
+        .parse()
+        .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
+    let desired = starts_at.with_timezone(&timezone).date_naive();
 
     let next: Option<(Uuid, Uuid, Option<String>)> = sqlx::query_as(
         r#"
@@ -116,13 +124,38 @@ pub async fn promote_on_cancel(
         return Ok(());
     };
 
-    let slot_minutes: i32 =
-        sqlx::query_scalar("SELECT slot_minutes FROM doctors WHERE id = $1")
-            .bind(doctor_id)
-            .fetch_one(&mut **tx)
-            .await?;
+    let doctor: Option<(i32, i32, bool)> = sqlx::query_as(
+        "SELECT slot_minutes, capacity_per_slot, is_active FROM doctors WHERE id = $1 AND clinic_id = $2",
+    )
+    .bind(doctor_id)
+    .bind(clinic_id)
+    .fetch_optional(&mut **tx)
+    .await?;
+    let Some((slot_minutes, capacity, is_active)) = doctor else {
+        return Ok(());
+    };
+    if !is_active {
+        return Ok(());
+    }
 
     let ends_at = starts_at + chrono::Duration::minutes(slot_minutes as i64);
+    let overlapping: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*) FROM appointments
+        WHERE clinic_id = $1 AND doctor_id = $2
+          AND status IN ('pending', 'confirmed', 'waiting')
+          AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
+        "#,
+    )
+    .bind(clinic_id)
+    .bind(doctor_id)
+    .bind(starts_at)
+    .bind(ends_at)
+    .fetch_one(&mut **tx)
+    .await?;
+    if overlapping >= i64::from(capacity) {
+        return Ok(());
+    }
 
     let appt_id: Uuid = sqlx::query_scalar(
         r#"

@@ -22,6 +22,7 @@ const navItems = [
   { label: "لوحة التحكم", href: "/dashboard", icon: LayoutDashboard },
   { label: "المواعيد", href: "/appointments", icon: CalendarDays },
   { label: "الأطباء", href: "/doctors", icon: Stethoscope },
+  { label: "الموظفون", href: "/staff", icon: Users, adminOnly: true },
   { label: "المرضى", href: "/patients", icon: Users },
   { label: "قائمة الانتظار", href: "/waiting-list", icon: Bell },
   { label: "التقارير", href: "/reports", icon: Grid2x2 },
@@ -119,7 +120,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav className="space-y-2">
-            {navItems.map((item) => {
+            {navItems.filter((item) => !("adminOnly" in item) || !item.adminOnly || session.role === "clinic_admin").map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(item.href);
 
