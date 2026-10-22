@@ -45,6 +45,11 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       META_APP_SECRET: ${META_APP_SECRET:-}
       META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-sahel-verify}
+      META_GRAPH_API_VERSION: ${META_GRAPH_API_VERSION:-v22.0}
+      META_REMINDER_TEMPLATE: ${META_REMINDER_TEMPLATE:-sahel_appointment_reminder}
+      META_REMINDER_TEMPLATE_LANGUAGE: ${META_REMINDER_TEMPLATE_LANGUAGE:-ar}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       TZ: Asia/Riyadh
       RUST_LOG: sahel_api=info,tower_http=info
     ports:

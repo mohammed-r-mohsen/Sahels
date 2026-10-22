@@ -57,6 +57,7 @@ async fn receive(
 
     let payload: Value = serde_json::from_slice(&body)
         .map_err(|e| AppError::BadRequest(format!("invalid json: {e}")))?;
+    let whatsapp_client = reqwest::Client::new();
 
     // Minimal WhatsApp Cloud API parsing
     if let Some(entries) = payload.get("entry").and_then(|e| e.as_array()) {
@@ -82,15 +83,24 @@ async fn receive(
 
                 for msg in messages {
                     let from = msg.get("from").and_then(|f| f.as_str()).unwrap_or("");
+                    let button_payload = msg
+                        .pointer("/interactive/button_reply/id")
+                        .or_else(|| msg.pointer("/button/payload"))
+                        .and_then(Value::as_str);
                     let body_text = msg
                         .get("text")
                         .and_then(|t| t.get("body"))
                         .and_then(|b| b.as_str())
+                        .or_else(|| {
+                            msg.pointer("/interactive/button_reply/title")
+                                .and_then(Value::as_str)
+                        })
+                        .or_else(|| msg.pointer("/button/text").and_then(Value::as_str))
                         .unwrap_or("");
                     let message_id = msg.get("id").and_then(|i| i.as_str()).map(|s| s.to_string());
 
                     if !phone_number_id.is_empty() && !from.is_empty() {
-                        let clinic_id = messaging::ingest_inbound(
+                        let (clinic_id, patient_id) = messaging::ingest_inbound(
                             &state.db,
                             messaging::InboundMessage {
                                 phone_number_id: phone_number_id.into(),
@@ -98,11 +108,25 @@ async fn receive(
                                 body: body_text.into(),
                                 message_id,
                             },
+                            state.config.integration_encryption_key.as_deref(),
                         )
                         .await?;
 
-                        // AI handoff stub — enqueue / process later
-                        tracing::info!(%clinic_id, from, "inbound whatsapp message stored");
+                        let handled = messaging::handle_reminder_response(
+                            &state.db,
+                            &whatsapp_client,
+                            clinic_id,
+                            patient_id,
+                            phone_number_id,
+                            from,
+                            body_text,
+                            button_payload,
+                            state.config.integration_encryption_key.as_deref(),
+                        )
+                        .await?;
+                        if !handled {
+                            tracing::info!(%clinic_id, from, "inbound whatsapp message stored");
+                        }
                     }
                 }
             }

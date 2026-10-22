@@ -21,6 +21,7 @@ import {
 const navItems = [
   { label: "لوحة التحكم", href: "/dashboard", icon: LayoutDashboard },
   { label: "المواعيد", href: "/appointments", icon: CalendarDays },
+  { label: "المحادثات والتنبيهات", href: "/messages", icon: MessageSquareText },
   { label: "الأطباء", href: "/doctors", icon: Stethoscope },
   { label: "الموظفون", href: "/staff", icon: Users, adminOnly: true },
   { label: "المرضى", href: "/patients", icon: Users },

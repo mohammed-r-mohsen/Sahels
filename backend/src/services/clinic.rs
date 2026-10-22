@@ -72,8 +72,8 @@ pub async fn update_clinic(
             return Err(AppError::BadRequest(format!("{label} أطول من المسموح")));
         }
     }
-    if input.reminder_hours.is_some_and(|hours| !(1..=168).contains(&hours)) {
-        return Err(AppError::BadRequest("مدة التذكير يجب أن تكون بين 1 و168 ساعة".into()));
+    if input.reminder_hours.is_some_and(|hours| hours != 4) {
+        return Err(AppError::BadRequest("يتم إرسال التذكير قبل الموعد بأربع ساعات".into()));
     }
     if let Some(timezone) = &input.timezone {
         if timezone.parse::<chrono_tz::Tz>().is_err() {
