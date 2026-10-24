@@ -1,9 +1,9 @@
 use axum::{
-    Json, Router,
     body::Bytes,
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
+    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -15,8 +15,7 @@ use crate::{
 };
 
 pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/meta", get(verify).post(receive))
+    Router::new().route("/meta", get(verify).post(receive))
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,15 +28,10 @@ pub struct VerifyQuery {
     challenge: Option<String>,
 }
 
-async fn verify(
-    Query(q): Query<VerifyQuery>,
-) -> Result<(StatusCode, String), AppError> {
+async fn verify(Query(q): Query<VerifyQuery>) -> Result<(StatusCode, String), AppError> {
     let expected = std::env::var("META_VERIFY_TOKEN").unwrap_or_else(|_| "sahel-verify".into());
     if q.mode.as_deref() == Some("subscribe") && q.verify_token.as_deref() == Some(&expected) {
-        return Ok((
-            StatusCode::OK,
-            q.challenge.unwrap_or_default(),
-        ));
+        return Ok((StatusCode::OK, q.challenge.unwrap_or_default()));
     }
     Err(AppError::Forbidden)
 }
@@ -97,7 +91,10 @@ async fn receive(
                         })
                         .or_else(|| msg.pointer("/button/text").and_then(Value::as_str))
                         .unwrap_or("");
-                    let message_id = msg.get("id").and_then(|i| i.as_str()).map(|s| s.to_string());
+                    let message_id = msg
+                        .get("id")
+                        .and_then(|i| i.as_str())
+                        .map(|s| s.to_string());
 
                     if !phone_number_id.is_empty() && !from.is_empty() {
                         let (clinic_id, patient_id) = messaging::ingest_inbound(
@@ -124,8 +121,29 @@ async fn receive(
                             state.config.integration_encryption_key.as_deref(),
                         )
                         .await?;
-                        if !handled {
-                            tracing::info!(%clinic_id, from, "inbound whatsapp message stored");
+                        if !handled && !body_text.trim().is_empty() {
+                            match messaging::handle_ai_message(
+                                &state.db,
+                                &whatsapp_client,
+                                clinic_id,
+                                patient_id,
+                                phone_number_id,
+                                from,
+                                state.config.integration_encryption_key.as_deref(),
+                                &state.config.ollama_base_url,
+                            )
+                            .await
+                            {
+                                Ok(true) => {}
+                                Ok(false) => {
+                                    tracing::info!(%clinic_id, from, "inbound whatsapp message stored")
+                                }
+                                Err(error) => {
+                                    tracing::error!(%clinic_id, from, error = %error, "patient assistant failed")
+                                }
+                            }
+                        } else if !handled {
+                            tracing::info!(%clinic_id, from, "non-text whatsapp message stored");
                         }
                     }
                 }

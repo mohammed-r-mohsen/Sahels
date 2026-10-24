@@ -1,6 +1,6 @@
+use chrono::{DateTime, NaiveDate, Utc};
 use hmac::{Hmac, Mac};
-use chrono::{DateTime, Utc};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::Sha256;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -34,7 +34,10 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    a.iter().zip(b.iter()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    a.iter()
+        .zip(b.iter())
+        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+        == 0
 }
 
 pub async fn resolve_clinic_by_phone_number_id(
@@ -206,6 +209,341 @@ pub async fn ingest_inbound(
     Ok((clinic_id, patient_id))
 }
 
+pub async fn handle_ai_message(
+    pool: &PgPool,
+    client: &reqwest::Client,
+    clinic_id: Uuid,
+    patient_id: Uuid,
+    phone_number_id: &str,
+    recipient: &str,
+    encryption_key: Option<&str>,
+    ollama_base_url: &str,
+) -> AppResult<bool> {
+    let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+    let settings: Option<(bool, String, String, String)> = sqlx::query_as(
+        r#"
+        SELECT s.enabled, s.booking_model, c.name, c.timezone
+        FROM clinic_ai_settings s
+        JOIN clinics c ON c.id = s.clinic_id
+        WHERE s.clinic_id = $1
+        "#,
+    )
+    .bind(clinic_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some((enabled, model, clinic_name, clinic_timezone)) =
+        settings.filter(|(enabled, _, _, _)| *enabled)
+    else {
+        tx.commit().await?;
+        return Ok(false);
+    };
+    let mut history: Vec<(String, String)> = sqlx::query_as(
+        r#"
+        SELECT direction, body FROM message_logs
+        WHERE clinic_id = $1 AND patient_id = $2 AND body IS NOT NULL
+        ORDER BY created_at DESC LIMIT 8
+        "#,
+    )
+    .bind(clinic_id)
+    .bind(patient_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    history.reverse();
+    let booking_requested = history
+        .iter()
+        .rev()
+        .find(|(direction, _)| direction == "in")
+        .is_some_and(|(_, body)| contains_explicit_booking_intent(body));
+
+    let mut messages = vec![json!({
+        "role": "system",
+        "content": format!(
+            "أنت موظف استقبال في عيادة {clinic_name}. أجب بالعربية السعودية الواضحة والمختصرة. الأوقات المعروضة بتوقيت {clinic_timezone}. استخدم الأدوات لكل معلومة عن الأطباء والمواعيد، ولا تخترع بيانات أو تدّعِ نجاح الحجز قبل نجاح الأداة. لا تقدم تشخيصاً أو نصيحة طبية؛ حوّل الأسئلة الطبية أو الطارئة لموظف العيادة. لا تنشئ حجزاً إلا بعد طلب صريح من المريض يتضمن رغبته في الحجز ووقتاً وطبيباً محددين، واستخدم وقت البداية كما أعادته أداة الإتاحة. عند نقص معلومة اسأل سؤالاً واحداً واضحاً."
+        )
+    })];
+    messages.extend(history.into_iter().map(|(direction, body)| {
+        json!({
+            "role": if direction == "in" { "user" } else { "assistant" },
+            "content": body
+        })
+    }));
+
+    let tools = patient_assistant_tools();
+    for _ in 0..3 {
+        let response = client
+            .post(format!(
+                "{}/api/chat",
+                ollama_base_url.trim_end_matches('/')
+            ))
+            .json(&json!({"model":model,"messages":messages,"tools":tools,"stream":false}))
+            .send()
+            .await
+            .map_err(|error| AppError::Other(anyhow::Error::from(error)))?;
+        let status = response.status();
+        let payload: Value = response
+            .json()
+            .await
+            .map_err(|error| AppError::Other(anyhow::Error::from(error)))?;
+        if !status.is_success() {
+            return Err(AppError::Other(anyhow::anyhow!(
+                "Ollama returned {status}: {payload}"
+            )));
+        }
+        let Some(message) = payload.get("message").cloned() else {
+            return Err(AppError::Other(anyhow::anyhow!(
+                "Ollama response has no message"
+            )));
+        };
+        let calls = message
+            .get("tool_calls")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        if calls.is_empty() {
+            let reply = message
+                .get("content")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|content| !content.is_empty())
+                .ok_or_else(|| {
+                    AppError::Other(anyhow::anyhow!("Ollama returned an empty reply"))
+                })?;
+            send_whatsapp_text(
+                pool,
+                client,
+                clinic_id,
+                patient_id,
+                phone_number_id,
+                recipient,
+                reply,
+                encryption_key,
+                "assistant_reply",
+            )
+            .await?;
+            return Ok(true);
+        }
+
+        messages.push(message);
+        for call in calls {
+            let function = call.get("function").cloned().unwrap_or(Value::Null);
+            let name = function.get("name").and_then(Value::as_str).unwrap_or("");
+            let arguments = function.get("arguments").cloned().unwrap_or(json!({}));
+            let result = execute_patient_tool(
+                pool,
+                clinic_id,
+                patient_id,
+                booking_requested,
+                name,
+                &arguments,
+            )
+            .await?;
+            if result.get("handoff").and_then(Value::as_bool) == Some(true) {
+                send_whatsapp_text(
+                    pool,
+                    client,
+                    clinic_id,
+                    patient_id,
+                    phone_number_id,
+                    recipient,
+                    "تم تحويل رسالتك إلى فريق العيادة، وسيتواصل معك الموظف المختص.",
+                    encryption_key,
+                    "assistant_handoff",
+                )
+                .await?;
+                return Ok(true);
+            }
+            messages.push(json!({"role":"tool","name":name,"content":result.to_string()}));
+        }
+    }
+    Err(AppError::Other(anyhow::anyhow!(
+        "Ollama exceeded the tool-call limit"
+    )))
+}
+
+fn patient_assistant_tools() -> Value {
+    json!([
+        {"type":"function","function":{"name":"list_doctors","description":"عرض الأطباء النشطين في هذه العيادة","parameters":{"type":"object","properties":{},"required":[]}}},
+        {"type":"function","function":{"name":"list_my_appointments","description":"عرض مواعيد المريض القادمة","parameters":{"type":"object","properties":{},"required":[]}}},
+        {"type":"function","function":{"name":"list_available_slots","description":"عرض الأوقات المتاحة لطبيب في تاريخ محدد","parameters":{"type":"object","properties":{"doctor_id":{"type":"string"},"date":{"type":"string","description":"YYYY-MM-DD"}},"required":["doctor_id","date"]}}},
+        {"type":"function","function":{"name":"book_appointment","description":"إنشاء موعد بعد طلب حجز صريح وتحديد الطبيب والوقت","parameters":{"type":"object","properties":{"doctor_id":{"type":"string"},"starts_at":{"type":"string","description":"RFC3339 datetime"},"service":{"type":"string"}},"required":["doctor_id","starts_at"]}}},
+        {"type":"function","function":{"name":"request_human_handoff","description":"تحويل المحادثة لموظف عند طلب المريض أو وجود سؤال طبي","parameters":{"type":"object","properties":{},"required":[]}}}
+    ])
+}
+
+async fn execute_patient_tool(
+    pool: &PgPool,
+    clinic_id: Uuid,
+    patient_id: Uuid,
+    booking_requested: bool,
+    name: &str,
+    arguments: &Value,
+) -> AppResult<Value> {
+    match name {
+        "list_doctors" => {
+            let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+            let doctors = sqlx::query_as::<_, (Uuid, String, Option<String>)>(
+                "SELECT id, full_name, specialty FROM doctors WHERE clinic_id = $1 AND is_active ORDER BY full_name",
+            )
+            .bind(clinic_id)
+            .fetch_all(&mut *tx)
+            .await?;
+            tx.commit().await?;
+            Ok(json!(doctors
+                .into_iter()
+                .map(|(id, name, specialty)| json!({"id":id,"name":name,"specialty":specialty}))
+                .collect::<Vec<_>>()))
+        }
+        "list_my_appointments" => {
+            let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+            let timezone_name: String =
+                sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+                    .bind(clinic_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            let timezone: chrono_tz::Tz = timezone_name
+                .parse()
+                .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
+            let rows = sqlx::query_as::<_, (String, String, DateTime<Utc>, String)>(
+                r#"SELECT d.full_name, COALESCE(a.service, ''), a.starts_at, a.status::text
+                   FROM appointments a JOIN doctors d ON d.id = a.doctor_id AND d.clinic_id = a.clinic_id
+                   WHERE a.clinic_id = $1 AND a.patient_id = $2 AND a.starts_at > NOW()
+                     AND a.status IN ('pending', 'confirmed', 'waiting')
+                   ORDER BY a.starts_at LIMIT 5"#,
+            )
+            .bind(clinic_id)
+            .bind(patient_id)
+            .fetch_all(&mut *tx)
+            .await?;
+            tx.commit().await?;
+            Ok(json!(rows
+                .into_iter()
+                .map(|(doctor, service, starts_at, status)| {
+                    let starts_at_local = starts_at
+                        .with_timezone(&timezone)
+                        .format("%Y-%m-%d %H:%M %:z")
+                        .to_string();
+                    json!({"doctor":doctor,"service":service,"starts_at":starts_at,"starts_at_local":starts_at_local,"status":status})
+                })
+                .collect::<Vec<_>>()))
+        }
+        "list_available_slots" => {
+            let doctor_id = patient_tool_uuid(arguments, "doctor_id")?;
+            let date = arguments
+                .get("date")
+                .and_then(Value::as_str)
+                .and_then(|value| NaiveDate::parse_from_str(value, "%Y-%m-%d").ok())
+                .ok_or_else(|| AppError::BadRequest("تاريخ غير صالح".into()))?;
+            let slots = crate::services::appointments::availability_for_clinic(
+                pool, clinic_id, doctor_id, date,
+            )
+            .await?;
+            let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+            let timezone_name: String =
+                sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+                    .bind(clinic_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            tx.commit().await?;
+            let timezone: chrono_tz::Tz = timezone_name
+                .parse()
+                .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
+            Ok(json!(slots
+                .into_iter()
+                .map(|slot| json!({
+                    "starts_at": slot.starts_at,
+                    "starts_at_local": slot.starts_at.with_timezone(&timezone).format("%Y-%m-%d %H:%M %:z").to_string(),
+                    "ends_at": slot.ends_at
+                }))
+                .collect::<Vec<_>>()))
+        }
+        "book_appointment" => {
+            if !booking_requested {
+                return Ok(json!({"error":"explicit_booking_request_required"}));
+            }
+            let doctor_id = patient_tool_uuid(arguments, "doctor_id")?;
+            let starts_at = arguments
+                .get("starts_at")
+                .and_then(Value::as_str)
+                .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+                .map(|value| value.with_timezone(&Utc))
+                .ok_or_else(|| AppError::BadRequest("وقت الموعد غير صالح".into()))?;
+            let service = arguments
+                .get("service")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_owned);
+            let appointment = crate::services::appointments::book_from_whatsapp(
+                pool, clinic_id, patient_id, doctor_id, starts_at, service,
+            )
+            .await?;
+            let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+            let timezone_name: String =
+                sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+                    .bind(clinic_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            tx.commit().await?;
+            let timezone: chrono_tz::Tz = timezone_name
+                .parse()
+                .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
+            let starts_at_local = appointment
+                .starts_at
+                .with_timezone(&timezone)
+                .format("%Y-%m-%d %H:%M %:z")
+                .to_string();
+            Ok(
+                json!({"booked":true,"appointment_id":appointment.id,"starts_at":appointment.starts_at,"starts_at_local":starts_at_local,"status":appointment.status}),
+            )
+        }
+        "request_human_handoff" => {
+            let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+            sqlx::query(
+                r#"UPDATE message_logs SET handoff = TRUE WHERE id = (
+                     SELECT id FROM message_logs WHERE clinic_id = $1 AND patient_id = $2 AND direction = 'in'
+                     ORDER BY created_at DESC LIMIT 1)"#,
+            )
+            .bind(clinic_id)
+            .bind(patient_id)
+            .execute(&mut *tx)
+            .await?;
+            tx.commit().await?;
+            Ok(json!({"handoff":true}))
+        }
+        _ => Ok(json!({"error":"unknown_tool"})),
+    }
+}
+
+fn patient_tool_uuid(arguments: &Value, key: &str) -> AppResult<Uuid> {
+    arguments
+        .get(key)
+        .and_then(Value::as_str)
+        .and_then(|value| Uuid::parse_str(value).ok())
+        .ok_or_else(|| AppError::BadRequest(format!("{key} غير صالح")))
+}
+
+fn contains_explicit_booking_intent(text: &str) -> bool {
+    let normalized = text.to_lowercase();
+    [
+        "احجز لي",
+        "أحجز لي",
+        "ابغى احجز",
+        "أبغى أحجز",
+        "ابي احجز",
+        "أبي أحجز",
+        "ودي احجز",
+        "ودي أحجز",
+        "أرغب بالحجز",
+        "ارغب في الحجز",
+        "أريد أن أحجز",
+        "اريد ان احجز",
+        "i want to book",
+    ]
+    .iter()
+    .any(|phrase| normalized.contains(phrase))
+}
+
 #[derive(Debug, sqlx::FromRow)]
 struct PendingReminder {
     id: Uuid,
@@ -251,11 +589,14 @@ pub async fn run_reminder_cycle(
                     .bind(reminder.appointment_id)
                     .execute(&mut *tx)
                     .await?;
-                let appointment_time = reminder
-                    .starts_at
-                    .with_timezone(&reminder.timezone.parse::<chrono_tz::Tz>().map_err(
-                        |error| AppError::Other(anyhow::anyhow!("invalid clinic timezone: {error}")),
-                    )?);
+                let appointment_time = reminder.starts_at.with_timezone(
+                    &reminder
+                        .timezone
+                        .parse::<chrono_tz::Tz>()
+                        .map_err(|error| {
+                            AppError::Other(anyhow::anyhow!("invalid clinic timezone: {error}"))
+                        })?,
+                );
                 let body = format!(
                     "تذكير بموعدك في {} يوم {} مع {}. يرجى تأكيد الحضور أو إبلاغنا باحتمال التأخر.",
                     reminder.clinic_name,
@@ -445,8 +786,7 @@ async fn send_appointment_reminder(
     let version = std::env::var("META_GRAPH_API_VERSION").unwrap_or_else(|_| "v22.0".into());
     let template = std::env::var("META_REMINDER_TEMPLATE")
         .unwrap_or_else(|_| "sahel_appointment_reminder".into());
-    let language = std::env::var("META_REMINDER_TEMPLATE_LANGUAGE")
-        .unwrap_or_else(|_| "ar".into());
+    let language = std::env::var("META_REMINDER_TEMPLATE_LANGUAGE").unwrap_or_else(|_| "ar".into());
     let timezone: chrono_tz::Tz = reminder
         .timezone
         .parse()
@@ -501,7 +841,11 @@ async fn send_appointment_reminder(
         .pointer("/messages/0/id")
         .and_then(Value::as_str)
         .map(str::to_owned)
-        .ok_or_else(|| AppError::Other(anyhow::anyhow!("Meta response did not include a message id")))
+        .ok_or_else(|| {
+            AppError::Other(anyhow::anyhow!(
+                "Meta response did not include a message id"
+            ))
+        })
 }
 
 fn quick_reply_component(index: u8, payload: String) -> Value {
@@ -628,7 +972,9 @@ pub async fn handle_reminder_response(
 
     let reply = match response {
         "confirmed" => "شكرًا لتأكيد حضورك للموعد. نتطلع إلى زيارتك.",
-        "may_be_late" => "شكرًا لإبلاغنا. سجلنا احتمال التأخر لفريق العيادة. لم يتم إلغاء موعدك تلقائيًا.",
+        "may_be_late" => {
+            "شكرًا لإبلاغنا. سجلنا احتمال التأخر لفريق العيادة. لم يتم إلغاء موعدك تلقائيًا."
+        }
         _ => "تم تسجيل طلب تحويل المحادثة إلى فريق العيادة.",
     };
     send_whatsapp_text(
@@ -640,6 +986,7 @@ pub async fn handle_reminder_response(
         recipient,
         reply,
         encryption_key,
+        "reminder_response",
     )
     .await?;
     Ok(true)
@@ -684,7 +1031,15 @@ fn classify_reminder_text(text: &str) -> Option<&'static str> {
     {
         Some("may_be_late")
     } else if [
-        "نعم", "اؤكد", "أؤكد", "اكيد", "أكيد", "سأحضر", "حاضر", "confirm", "yes",
+        "نعم",
+        "اؤكد",
+        "أؤكد",
+        "اكيد",
+        "أكيد",
+        "سأحضر",
+        "حاضر",
+        "confirm",
+        "yes",
     ]
     .iter()
     .any(|word| text.contains(word))
@@ -704,6 +1059,7 @@ async fn send_whatsapp_text(
     recipient: &str,
     text: &str,
     encryption_key: Option<&str>,
+    message_type: &str,
 ) -> AppResult<()> {
     let (resolved_clinic_id, access_token) =
         resolve_clinic_by_phone_number_id(pool, phone_number_id, encryption_key).await?;
@@ -740,12 +1096,13 @@ async fn send_whatsapp_text(
     sqlx::query(
         r#"
         INSERT INTO message_logs (clinic_id, patient_id, channel, direction, body, meta)
-        VALUES ($1, $2, 'whatsapp', 'out', $3, jsonb_build_object('type', 'reminder_response'))
+        VALUES ($1, $2, 'whatsapp', 'out', $3, jsonb_build_object('type', $4))
         "#,
     )
     .bind(clinic_id)
     .bind(patient_id)
     .bind(text)
+    .bind(message_type)
     .execute(&mut *tx)
     .await?;
     tx.commit().await?;
@@ -754,6 +1111,7 @@ async fn send_whatsapp_text(
 
 #[cfg(test)]
 mod tests {
+    use super::contains_explicit_booking_intent;
     use super::{classify_reminder_text, parse_reminder_payload};
 
     #[test]
@@ -777,5 +1135,16 @@ mod tests {
         );
         assert!(parse_reminder_payload("APPT:CONFIRM:not-a-uuid").is_none());
         assert!(parse_reminder_payload("APPT:CONFIRM:bad:extra").is_none());
+    }
+    #[test]
+    fn booking_intent_requires_a_direct_request() {
+        assert!(contains_explicit_booking_intent(
+            "أبغى أحجز موعد يوم الاثنين"
+        ));
+        assert!(contains_explicit_booking_intent("احجز لي عند الطبيب"));
+        assert!(!contains_explicit_booking_intent(
+            "هل يوجد موعد يوم الاثنين؟"
+        ));
+        assert!(!contains_explicit_booking_intent("كيف أحجز موعد؟"));
     }
 }

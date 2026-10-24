@@ -36,7 +36,16 @@ pub async fn availability(
     date: NaiveDate,
 ) -> AppResult<Vec<Slot>> {
     let clinic_id = user.require_clinic()?;
-    let mut tx = begin_tenant(pool, Some(clinic_id), user.is_super()).await?;
+    availability_for_clinic(pool, clinic_id, doctor_id, date).await
+}
+
+pub async fn availability_for_clinic(
+    pool: &PgPool,
+    clinic_id: Uuid,
+    doctor_id: Uuid,
+    date: NaiveDate,
+) -> AppResult<Vec<Slot>> {
+    let mut tx = begin_tenant(pool, Some(clinic_id), false).await?;
     let clinic_timezone: String =
         sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
             .bind(clinic_id)
@@ -128,6 +137,149 @@ pub async fn availability(
     }
 
     Ok(slots)
+}
+
+pub async fn book_from_whatsapp(
+    pool: &PgPool,
+    clinic_id: Uuid,
+    patient_id: Uuid,
+    doctor_id: Uuid,
+    starts_at: DateTime<Utc>,
+    service: Option<String>,
+) -> AppResult<Appointment> {
+    if starts_at <= Utc::now() || starts_at.second() != 0 || starts_at.nanosecond() != 0 {
+        return Err(AppError::BadRequest("وقت الموعد غير صالح".into()));
+    }
+    if service.as_ref().is_some_and(|value| value.len() > 200) {
+        return Err(AppError::BadRequest("اسم الخدمة أطول من المسموح".into()));
+    }
+
+    let mut tx = begin_tenant(pool, Some(clinic_id), false).await?;
+    let timezone_name: String = sqlx::query_scalar("SELECT timezone FROM clinics WHERE id = $1")
+        .bind(clinic_id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let timezone: chrono_tz::Tz = timezone_name
+        .parse()
+        .map_err(|_| AppError::Other(anyhow::anyhow!("invalid clinic timezone")))?;
+    let subscription_status: String =
+        sqlx::query_scalar("SELECT subscription_status FROM clinics WHERE id = $1")
+            .bind(clinic_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    if !matches!(
+        subscription_status.as_str(),
+        "active" | "trial" | "past_due"
+    ) {
+        return Err(AppError::SubscriptionInactive);
+    }
+
+    sqlx::query("SELECT pg_advisory_xact_lock($1)")
+        .bind(advisory_key(doctor_id))
+        .execute(&mut *tx)
+        .await?;
+    let (slot_minutes, capacity): (i32, i32) = sqlx::query_as(
+        "SELECT slot_minutes, capacity_per_slot FROM doctors WHERE id = $1 AND clinic_id = $2 AND is_active",
+    )
+    .bind(doctor_id)
+    .bind(clinic_id)
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| AppError::NotFound("الطبيب غير موجود".into()))?;
+
+    let ends_at = starts_at + Duration::minutes(slot_minutes as i64);
+    let local_start = starts_at.with_timezone(&timezone);
+    let local_end = ends_at.with_timezone(&timezone);
+    if local_end.date_naive() != local_start.date_naive() {
+        return Err(AppError::BadRequest("وقت الموعد خارج ساعات العمل".into()));
+    }
+    let weekday = local_start.weekday().num_days_from_sunday() as i16;
+    let start_time = local_start.time();
+    let end_time = local_end.time();
+    let schedules: Vec<(NaiveTime, NaiveTime)> = sqlx::query_as(
+        r#"
+        SELECT start_time, end_time FROM doctor_schedules
+        WHERE doctor_id = $1 AND clinic_id = $2 AND weekday = $3
+          AND start_time <= $4 AND end_time >= $5
+        "#,
+    )
+    .bind(doctor_id)
+    .bind(clinic_id)
+    .bind(weekday)
+    .bind(start_time)
+    .bind(end_time)
+    .fetch_all(&mut *tx)
+    .await?;
+    let aligned = schedules.iter().any(|(schedule_start, _)| {
+        start_time
+            .signed_duration_since(*schedule_start)
+            .num_seconds()
+            % (slot_minutes as i64 * 60)
+            == 0
+    });
+    if !aligned {
+        return Err(AppError::BadRequest("الوقت غير متاح لدى الطبيب".into()));
+    }
+
+    let patient_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM patients WHERE id = $1 AND clinic_id = $2)",
+    )
+    .bind(patient_id)
+    .bind(clinic_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    if !patient_exists {
+        return Err(AppError::NotFound("المريض غير موجود".into()));
+    }
+    let overlapping: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*) FROM appointments
+        WHERE clinic_id = $1 AND doctor_id = $2
+          AND status IN ('pending','confirmed','waiting')
+          AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
+        "#,
+    )
+    .bind(clinic_id)
+    .bind(doctor_id)
+    .bind(starts_at)
+    .bind(ends_at)
+    .fetch_one(&mut *tx)
+    .await?;
+    if overlapping >= i64::from(capacity) {
+        return Err(AppError::Conflict("الموعد محجوز مسبقاً".into()));
+    }
+
+    let appointment = sqlx::query_as::<_, Appointment>(
+        r#"
+        INSERT INTO appointments
+          (clinic_id, doctor_id, patient_id, starts_at, ends_at, status, source, service)
+        VALUES ($1, $2, $3, $4, $5, 'confirmed', 'whatsapp', $6)
+        RETURNING id, clinic_id, doctor_id, patient_id, starts_at, ends_at,
+                  status::text AS status, source, service, reminder_sent, notes, created_at
+        "#,
+    )
+    .bind(clinic_id)
+    .bind(doctor_id)
+    .bind(patient_id)
+    .bind(starts_at)
+    .bind(ends_at)
+    .bind(&service)
+    .fetch_one(&mut *tx)
+    .await?;
+    sqlx::query(
+        r#"
+        INSERT INTO audit_logs (clinic_id, action, entity, entity_id, details)
+        VALUES ($1, 'appointment.create_from_whatsapp', 'appointment', $2,
+                jsonb_build_object('patient_id', $3::text))
+        "#,
+    )
+    .bind(clinic_id)
+    .bind(appointment.id.to_string())
+    .bind(patient_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(appointment)
 }
 
 pub async fn create(
