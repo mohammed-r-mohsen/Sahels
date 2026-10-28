@@ -1,0 +1,27 @@
+groups:
+  - name: sahels-availability
+    rules:
+      - alert: SahelsEndpointUnavailable
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Sahels endpoint unavailable: {{ $labels.instance }}"
+          description: "The health probe has failed for more than two minutes."
+
+      - alert: SahelsPostgresUnavailable
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Sahels PostgreSQL exporter cannot connect"
+
+      - alert: SahelsRedisUnavailable
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Sahels Redis exporter cannot connect"

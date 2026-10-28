@@ -5,12 +5,17 @@ services:
     environment:
       POSTGRES_DB: sahels
       POSTGRES_USER: sahels
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sahels_dev_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong POSTGRES_PASSWORD in .env}
       TZ: Asia/Riyadh
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5432:5432"
+    logging: &bounded-logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sahels"]
       interval: 5s
@@ -20,13 +25,14 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-sahels_redis} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:?Set a strong REDIS_PASSWORD in .env} --appendonly yes
     volumes:
       - redisdata:/data
     ports:
       - "127.0.0.1:6379:6379"
+    logging: *bounded-logs
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-sahels_redis}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -38,17 +44,17 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     environment:
-      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD:-sahels_dev_pass}@postgres:5432/sahels
-      REDIS_URL: redis://:${REDIS_PASSWORD:-sahels_redis}@redis:6379
+      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/sahels
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       BIND_ADDR: 0.0.0.0:8080
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      META_APP_SECRET: ${META_APP_SECRET:-}
-      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-sahel-verify}
+      META_APP_SECRET: ${META_APP_SECRET:?Set META_APP_SECRET to verify Meta webhook signatures}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:?Set a random META_VERIFY_TOKEN}
       META_GRAPH_API_VERSION: ${META_GRAPH_API_VERSION:-v22.0}
       META_REMINDER_TEMPLATE: ${META_REMINDER_TEMPLATE:-sahel_appointment_reminder}
       META_REMINDER_TEMPLATE_LANGUAGE: ${META_REMINDER_TEMPLATE_LANGUAGE:-ar}
-      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:?Set a random INTEGRATION_ENCRYPTION_KEY of at least 32 bytes}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       MOYASAR_SECRET_KEY: ${MOYASAR_SECRET_KEY:-}
       BILLING_CALLBACK_URL: ${BILLING_CALLBACK_URL:-}
@@ -57,7 +63,176 @@ services:
       RUST_LOG: sahel_api=info,tower_http=info
     ports:
       - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging: *bounded-logs
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        IAM_API_URL: http://api:8080
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      IAM_API_URL: http://api:8080
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *bounded-logs
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.27.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes:
+      - ./infra/monitoring/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    logging: *bounded-logs
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    profiles: [monitoring]
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_URI: postgres:5432/sahels?sslmode=disable
+      DATA_SOURCE_USER: sahels
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    depends_on:
+      postgres: { condition: service_healthy }
+    logging: *bounded-logs
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.76.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    depends_on:
+      redis: { condition: service_healthy }
+    logging: *bounded-logs
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheusdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - blackbox-exporter
+      - postgres-exporter
+      - redis-exporter
+      - alertmanager
+    logging: *bounded-logs
+
+  alertmanager-config:
+    build:
+      context: ./infra/monitoring
+      dockerfile: alertmanager-config.Dockerfile
+    profiles: [monitoring]
+    restart: "no"
+    environment:
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:-https://example.invalid/alerts}
+    volumes:
+      - ./infra/monitoring/alertmanager.yml.template:/template/alertmanager.yml:ro
+      - alertmanagerconfig:/generated
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - alertmanagerconfig:/etc/alertmanager:ro
+      - alertmanagerdata:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    depends_on:
+      alertmanager-config: { condition: service_completed_successfully }
+    logging: *bounded-logs
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set a strong GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./infra/monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+      - loki
+    logging: *bounded-logs
+
+  loki:
+    image: grafana/loki:3.5.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./infra/monitoring/loki.yml:/etc/loki/loki.yml:ro
+      - lokidata:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    logging: *bounded-logs
+
+  alloy:
+    image: grafana/alloy:v1.10.2
+    profiles: [monitoring]
+    restart: unless-stopped
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command:
+      - run
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./infra/monitoring/alloy.alloy:/etc/alloy/config.alloy:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - alloydata:/var/lib/alloy/data
+    depends_on:
+      - loki
+    logging: *bounded-logs
 
 volumes:
   pgdata:
   redisdata:
+  prometheusdata:
+  grafanadata:
+  alertmanagerconfig:
+  alertmanagerdata:
+  lokidata:
+  alloydata:

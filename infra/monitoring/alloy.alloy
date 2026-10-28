@@ -1,0 +1,33 @@
+local.file_match "docker" {
+  path_targets = [{
+    __path__ = "/var/lib/docker/containers/*/*.log",
+    job      = "docker",
+  }]
+}
+
+loki.source.file "docker" {
+  targets    = local.file_match.docker.targets
+  forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+  forward_to = [loki.write.default.receiver]
+
+  stage.docker {}
+
+  stage.replace {
+    expression = "(?P<phone>\\+?[0-9][0-9 -]{7,}[0-9])"
+    replace    = "[REDACTED_PHONE]"
+  }
+
+  stage.replace {
+    expression = "(?P<email>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})"
+    replace    = "[REDACTED_EMAIL]"
+  }
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

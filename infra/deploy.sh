@@ -1,6 +1,11 @@
 #!/bin/bash
 # Sahels Deployment Script
 # Usage: ./deploy.sh
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT_DIR"
 
 echo "🚀 Starting Sahels Deployment..."
 
@@ -27,10 +32,8 @@ nginx -t && systemctl restart nginx
 
 # 5. Setup Firewall
 echo "🛡️ Setting up UFW..."
-ufw allow 22/tcp
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw --force enable
+SSH_ALLOW_CIDR="${SSH_ALLOW_CIDR:?Set SSH_ALLOW_CIDR to the admin IP/CIDR before deployment}" \
+SSH_PORT="${SSH_PORT:-22}" bash "$SCRIPT_DIR/cloudflare-ufw.sh"
 
 # 6. Start Docker Compose
 echo "🚀 Starting Sahels Containers..."

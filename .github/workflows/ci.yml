@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Rust API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path backend/Cargo.toml -- --check
+      - name: Lint
+        run: cargo clippy --manifest-path backend/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --manifest-path backend/Cargo.toml --locked
+
+  web:
+    name: Next.js web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --prefix apps/web --no-package-lock
+      - name: Lint
+        run: npm run lint --prefix apps/web
+      - name: Build
+        run: npm run build --prefix apps/web
+
+  compose:
+    name: Docker Compose validation
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-postgres-secret-not-for-production
+      REDIS_PASSWORD: ci-redis-secret-not-for-production
+      JWT_SECRET: ci-jwt-secret-not-for-production-0123456789
+      GRAFANA_ADMIN_PASSWORD: ci-grafana-secret-not-for-production
+      INTEGRATION_ENCRYPTION_KEY: ci-integration-key-not-for-production-0123456789
+      META_APP_SECRET: ci-meta-app-secret-not-for-production
+      META_VERIFY_TOKEN: ci-meta-verify-token-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
