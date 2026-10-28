@@ -1,6 +1,7 @@
 pub mod appointments;
 pub mod auth;
 pub mod billing;
+pub mod billing_gateway;
 pub mod clinic;
 pub mod integrations;
 pub mod messaging;

@@ -94,3 +94,35 @@ pub fn require_roles(user: &AuthUser, allowed: &[&str]) -> AppResult<()> {
         Err(AppError::Forbidden)
     }
 }
+
+pub async fn require_active_subscription(
+    State(state): State<AppState>,
+    user: AuthUser,
+    req: Request,
+    next: Next,
+) -> AppResult<Response> {
+    if user.is_super() {
+        return Ok(next.run(req).await);
+    }
+    let clinic_id = user.require_clinic()?;
+    let mut tx = crate::db::begin_tenant(&state.db, Some(clinic_id), false).await?;
+    let (status, ends_at): (String, Option<chrono::DateTime<chrono::Utc>>) = sqlx::query_as(
+        "SELECT subscription_status, subscription_ends_at FROM clinics WHERE id = $1",
+    )
+    .bind(clinic_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    let expired = ends_at.is_some_and(|ends_at| ends_at <= chrono::Utc::now());
+    let eligible = matches!(status.as_str(), "active" | "trial" | "past_due");
+    if expired && eligible {
+        sqlx::query("UPDATE clinics SET subscription_status = 'suspended' WHERE id = $1")
+            .bind(clinic_id)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+    if !eligible || expired {
+        return Err(AppError::SubscriptionInactive);
+    }
+    Ok(next.run(req).await)
+}

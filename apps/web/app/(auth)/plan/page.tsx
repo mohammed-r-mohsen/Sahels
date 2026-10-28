@@ -3,8 +3,8 @@ import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 const plans = [
   { name: "Starter", price: "SAR 299", tag: "لعيادة صغيرة", perks: ["1 عيادة", "2 أطباء", "تذكيرات SMS", "تقارير أساسية"], active: false },
-  { name: "Growth", price: "SAR 799", tag: "الأكثر طلبًا", perks: ["حتى 5 أطباء", "قائمة انتظار", "واتساب Business", "AI assistant"], active: true },
-  { name: "Enterprise", price: "SAR 1499", tag: "لعدة عيادات", perks: ["عشرات العيادات", "دعم مخصص", "API/Webhooks", "تحليلات متقدمة"], active: false },
+  { name: "Growth", price: "SAR 469", tag: "الأكثر طلبًا", perks: ["حتى 8 أطباء", "قائمة انتظار", "واتساب Business", "AI assistant"], active: true },
+  { name: "Scale", price: "SAR 659", tag: "للعيادات المتوسعة", perks: ["عدد أطباء مرن", "قنوات متعددة", "API/Webhooks", "تحليلات متقدمة"], active: false },
 ];
 
 export default function PlanPage() {

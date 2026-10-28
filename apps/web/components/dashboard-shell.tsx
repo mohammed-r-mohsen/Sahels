@@ -29,7 +29,7 @@ const navItems = [
   { label: "التقارير", href: "/reports", icon: Grid2x2 },
   { label: "الإعدادات", href: "/settings", icon: Settings },
   { label: "التكاملات", href: "/integrations", icon: MessageSquareText },
-  { label: "الفواتير", href: "/billing", icon: CreditCard },
+  { label: "الفواتير", href: "/billing", icon: CreditCard, adminOnly: true },
   { label: "AI Assistant", href: "/ai-assistant", icon: WandSparkles },
 ];
 

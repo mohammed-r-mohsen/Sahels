@@ -12,6 +12,9 @@ pub struct Config {
     pub meta_app_secret: Option<String>,
     pub integration_encryption_key: Option<String>,
     pub ollama_base_url: String,
+    pub moyasar_secret_key: Option<String>,
+    pub billing_callback_url: Option<String>,
+    pub billing_success_url: Option<String>,
     pub cors_origins: Vec<String>,
 }
 
@@ -63,6 +66,15 @@ impl Config {
             meta_app_secret: env::var("META_APP_SECRET").ok(),
             integration_encryption_key,
             ollama_base_url,
+            moyasar_secret_key: env::var("MOYASAR_SECRET_KEY")
+                .ok()
+                .filter(|value| !value.trim().is_empty()),
+            billing_callback_url: env::var("BILLING_CALLBACK_URL")
+                .ok()
+                .filter(|value| !value.trim().is_empty()),
+            billing_success_url: env::var("BILLING_SUCCESS_URL")
+                .ok()
+                .filter(|value| !value.trim().is_empty()),
             cors_origins: env::var("CORS_ORIGINS")
                 .unwrap_or_else(|_| "http://localhost:3000".into())
                 .split(',')

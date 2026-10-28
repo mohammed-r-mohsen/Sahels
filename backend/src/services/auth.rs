@@ -140,23 +140,6 @@ pub async fn login(pool: &PgPool, cfg: &Config, email: &str, password: &str) -> 
         return Err(AppError::Unauthorized);
     }
 
-    // Subscription guard (skip for super_admin)
-    if user.role != "super_admin" {
-        if let Some(clinic_id) = user.clinic_id {
-            let status: Option<String> = sqlx::query_scalar(
-                "SELECT subscription_status FROM clinics WHERE id = $1",
-            )
-            .bind(clinic_id)
-            .fetch_optional(&mut *tx)
-            .await?;
-
-            match status.as_deref() {
-                Some("active") | Some("trial") | Some("past_due") => {}
-                _ => return Err(AppError::SubscriptionInactive),
-            }
-        }
-    }
-
     sqlx::query("UPDATE users SET last_login_at = NOW() WHERE id = $1")
         .bind(user.id)
         .execute(&mut *tx)

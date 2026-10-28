@@ -72,6 +72,20 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    let billing_pool = state.db.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            match services::billing::suspend_expired_subscriptions(&billing_pool).await {
+                Ok(count) if count > 0 => tracing::info!(count, "expired subscriptions suspended"),
+                Ok(_) => {}
+                Err(error) => tracing::error!(error = %error, "subscription expiry worker failed"),
+            }
+        }
+    });
+
     let cors = if config.cors_origins.iter().any(|o| o == "*") {
         CorsLayer::new()
             .allow_origin(Any)

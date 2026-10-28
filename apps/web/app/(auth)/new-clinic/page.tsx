@@ -10,8 +10,8 @@ const clinicSteps = [
 
 const plans = [
   { name: "Starter", price: "SAR 299", text: "لعيادة صغيرة" },
-  { name: "Growth", price: "SAR 799", text: "للعيادات المتوسّطة" },
-  { name: "Enterprise", price: "SAR 1499", text: "لعدة عيادات" },
+  { name: "Growth", price: "SAR 469", text: "للعيادات المتوسّطة" },
+  { name: "Scale", price: "SAR 659", text: "للعيادات المتوسعة" },
 ];
 
 export default function NewClinicPage() {
