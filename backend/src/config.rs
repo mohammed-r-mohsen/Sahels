@@ -1,9 +1,12 @@
 use anyhow::{Context, ensure};
 use std::env;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Config {
     pub database_url: String,
+    pub database_migration_url: String,
+    pub sahel_app_password: String,
+    pub postgres_exporter_password: String,
     pub redis_url: String,
     pub jwt_secret: String,
     pub jwt_access_secs: i64,
@@ -32,6 +35,35 @@ impl Config {
         );
         let jwt_access_secs = positive_integer("JWT_ACCESS_SECS", 900)?;
         let jwt_refresh_secs = positive_integer("JWT_REFRESH_SECS", 60 * 60 * 24 * 14)?;
+        let sahel_app_password = required_hex_secret("SAHEL_APP_PASSWORD")?;
+        let postgres_exporter_password = required_hex_secret("POSTGRES_EXPORTER_PASSWORD")?;
+        let database_url = env::var("DATABASE_URL")
+            .context("DATABASE_URL must use the restricted sahel_app role")?;
+        let database_migration_url = env::var("DATABASE_MIGRATION_URL")
+            .context("DATABASE_MIGRATION_URL must use a privileged migration role")?;
+        let runtime_database = reqwest::Url::parse(&database_url)
+            .context("DATABASE_URL must be a valid PostgreSQL URL")?;
+        ensure!(
+            runtime_database.username() == "sahel_app"
+                && runtime_database.password() == Some(sahel_app_password.as_str()),
+            "DATABASE_URL must authenticate as sahel_app using SAHEL_APP_PASSWORD"
+        );
+        let migration_database = reqwest::Url::parse(&database_migration_url)
+            .context("DATABASE_MIGRATION_URL must be a valid PostgreSQL URL")?;
+        let migration_password = migration_database.password().unwrap_or_default();
+        ensure!(
+            migration_database.username() == "sahels"
+                && is_hex_secret(migration_password)
+                && migration_password.len() >= 64,
+            "DATABASE_MIGRATION_URL must use sahels and a unique 64-character hex password"
+        );
+        let redis_url = env::var("REDIS_URL").context("REDIS_URL must be set")?;
+        let redis = reqwest::Url::parse(&redis_url).context("REDIS_URL must be valid")?;
+        let redis_password = redis.password().unwrap_or_default();
+        ensure!(
+            is_hex_secret(redis_password) && redis_password.len() >= 64,
+            "REDIS_URL must contain a unique 64-character hex password"
+        );
         let integration_encryption_key = env::var("INTEGRATION_ENCRYPTION_KEY")
             .ok()
             .filter(|key| !key.trim().is_empty());
@@ -55,10 +87,11 @@ impl Config {
         );
 
         Ok(Self {
-            database_url: env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgres://sahels:sahels@localhost:5432/sahels".into()),
-            redis_url: env::var("REDIS_URL")
-                .unwrap_or_else(|_| "redis://127.0.0.1:6379".into()),
+            database_url,
+            database_migration_url,
+            sahel_app_password,
+            postgres_exporter_password,
+            redis_url,
             jwt_secret,
             jwt_access_secs,
             jwt_refresh_secs,
@@ -83,6 +116,19 @@ impl Config {
                 .collect(),
         })
     }
+}
+
+fn required_hex_secret(name: &str) -> anyhow::Result<String> {
+    let value = env::var(name).with_context(|| format!("{name} must be set"))?;
+    ensure!(
+        is_hex_secret(&value) && value.len() >= 64,
+        "{name} must contain at least 64 hexadecimal characters"
+    );
+    Ok(value)
+}
+
+fn is_hex_secret(value: &str) -> bool {
+    value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn positive_integer(name: &str, default: i64) -> anyhow::Result<i64> {

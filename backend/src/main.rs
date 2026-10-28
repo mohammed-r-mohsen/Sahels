@@ -34,13 +34,31 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::from_env()?;
     tracing::info!("connecting to postgres…");
 
+    let migration_db = PgPoolOptions::new()
+        .max_connections(20)
+        .connect(&config.database_migration_url)
+        .await?;
+
+    sqlx::migrate!("./migrations").run(&migration_db).await?;
+    tracing::info!("migrations applied");
+
+    let app_role_sql = format!(
+        "ALTER ROLE sahel_app LOGIN PASSWORD '{}'",
+        config.sahel_app_password
+    );
+    sqlx::query(&app_role_sql).execute(&migration_db).await?;
+    let monitor_role_sql = format!(
+        "ALTER ROLE sahel_monitor LOGIN PASSWORD '{}'",
+        config.postgres_exporter_password
+    );
+    sqlx::query(&monitor_role_sql).execute(&migration_db).await?;
+    migration_db.close().await;
+
     let db = PgPoolOptions::new()
         .max_connections(20)
         .connect(&config.database_url)
         .await?;
-
-    sqlx::migrate!("./migrations").run(&db).await?;
-    tracing::info!("migrations applied");
+    tracing::info!("connected to PostgreSQL using restricted sahel_app role");
 
     let redis_client = redis::Client::open(config.redis_url.as_str())?;
     let redis = redis_client.get_connection_manager().await?;

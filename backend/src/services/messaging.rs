@@ -167,9 +167,12 @@ pub async fn ingest_instagram_handoff(
     .fetch_one(&mut *tx)
     .await?;
     sqlx::query(
-        r#"INSERT INTO message_logs (clinic_id, patient_id, channel, direction, body, handoff, meta)
+        r#"INSERT INTO message_logs
+             (clinic_id, patient_id, channel, direction, body, handoff, meta, webhook_message_id)
            VALUES ($1, $2, 'instagram', 'in', $3, TRUE,
-                   jsonb_build_object('message_id', $4, 'sender_id', $5))"#,
+               jsonb_build_object('message_id', $4, 'sender_id', $5), $4)
+           ON CONFLICT (clinic_id, channel, webhook_message_id)
+             WHERE webhook_message_id IS NOT NULL DO NOTHING"#,
     )
     .bind(clinic_id)
     .bind(patient_id)
@@ -234,12 +237,76 @@ pub async fn resolve_handoff(
     Ok(())
 }
 
+pub async fn claim_inbound_webhook(
+    pool: &PgPool,
+    clinic_id: Uuid,
+    message_log_id: Uuid,
+) -> AppResult<bool> {
+    let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+    let claimed: Option<bool> = sqlx::query_scalar(
+        r#"UPDATE message_logs
+           SET webhook_status = 'processing',
+               webhook_attempts = webhook_attempts + 1,
+               webhook_locked_at = NOW()
+           WHERE id = $1 AND clinic_id = $2 AND direction = 'in'
+             AND webhook_attempts < 6
+             AND (webhook_status IN ('pending', 'failed')
+                  OR (webhook_status = 'processing'
+                      AND webhook_locked_at < NOW() - INTERVAL '2 minutes'))
+           RETURNING TRUE"#,
+    )
+    .bind(message_log_id)
+    .bind(clinic_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(claimed.unwrap_or(false))
+}
+
+pub async fn complete_inbound_webhook(
+    pool: &PgPool,
+    clinic_id: Uuid,
+    message_log_id: Uuid,
+) -> AppResult<()> {
+    let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+    sqlx::query(
+        r#"UPDATE message_logs
+           SET webhook_status = 'completed', webhook_locked_at = NULL
+           WHERE id = $1 AND clinic_id = $2 AND webhook_status = 'processing'"#,
+    )
+    .bind(message_log_id)
+    .bind(clinic_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub async fn fail_inbound_webhook(
+    pool: &PgPool,
+    clinic_id: Uuid,
+    message_log_id: Uuid,
+) -> AppResult<()> {
+    let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+    sqlx::query(
+        r#"UPDATE message_logs
+           SET webhook_status = 'failed', webhook_locked_at = NULL, handoff = TRUE
+           WHERE id = $1 AND clinic_id = $2 AND webhook_status = 'processing'"#,
+    )
+    .bind(message_log_id)
+    .bind(clinic_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Persist inbound message and return clinic_id for AI/routing.
 pub async fn ingest_inbound(
     pool: &PgPool,
     msg: InboundMessage,
     encryption_key: Option<&str>,
-) -> AppResult<(Uuid, Uuid)> {
+) -> AppResult<(Uuid, Uuid, Uuid)> {
     let (clinic_id, _token) =
         resolve_clinic_by_phone_number_id(pool, &msg.phone_number_id, encryption_key).await?;
 
@@ -258,21 +325,39 @@ pub async fn ingest_inbound(
     .fetch_one(&mut *tx)
     .await?;
 
-    sqlx::query(
+        let message_log_id: Option<Uuid> = sqlx::query_scalar(
         r#"
-        INSERT INTO message_logs (clinic_id, patient_id, channel, direction, body, meta)
-        VALUES ($1, $2, 'whatsapp', 'in', $3, jsonb_build_object('message_id', $4))
+                INSERT INTO message_logs
+                    (clinic_id, patient_id, channel, direction, body, meta, webhook_message_id, webhook_status)
+                VALUES ($1, $2, 'whatsapp', 'in', $3,
+                    jsonb_build_object('message_id', $4, 'phone_number_id', $6), $5, 'pending')
+                ON CONFLICT (clinic_id, channel, webhook_message_id)
+                    WHERE webhook_message_id IS NOT NULL DO NOTHING
+                RETURNING id
         "#,
     )
     .bind(clinic_id)
     .bind(patient_id)
     .bind(&msg.body)
     .bind(msg.message_id.as_deref().unwrap_or(""))
-    .execute(&mut *tx)
+    .bind(msg.message_id)
+    .bind(&msg.phone_number_id)
+    .fetch_optional(&mut *tx)
     .await?;
 
+    let message_log_id = match message_log_id {
+        Some(id) => id,
+        None => sqlx::query_scalar(
+            "SELECT id FROM message_logs WHERE clinic_id = $1 AND channel = 'whatsapp' AND webhook_message_id = $2",
+        )
+        .bind(clinic_id)
+        .bind(msg.message_id.as_deref().unwrap_or(""))
+        .fetch_one(&mut *tx)
+        .await?,
+    };
+
     tx.commit().await?;
-    Ok((clinic_id, patient_id))
+    Ok((clinic_id, patient_id, message_log_id))
 }
 
 pub async fn handle_ai_message(

@@ -238,6 +238,12 @@ pub async fn update_doctor(
         .bind(crate::services::appointments::advisory_key(doctor_id))
         .execute(&mut *tx)
         .await?;
+    sqlx::query("SELECT id FROM doctors WHERE id = $1 AND clinic_id = $2 FOR UPDATE")
+        .bind(doctor_id)
+        .bind(clinic_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| AppError::NotFound("الطبيب غير موجود".into()))?;
     if let Some(capacity) = input.capacity_per_slot {
         let over_capacity: bool = sqlx::query_scalar(
             r#"

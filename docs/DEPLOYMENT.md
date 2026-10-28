@@ -2,11 +2,11 @@
 
 ## نشر الإنتاج
 
-1. انسخ `.env.production.example` إلى `.env`، واستبدل كل قيمة `REPLACE_...`. ولّد كلمات مرور قاعدة البيانات وRedis والمفاتيح بـ`openssl rand -hex 32`. لا تحفظ `.env` في Git ولا ترسل الأسرار في المحادثات.
+1. انسخ `.env.production.example` إلى `.env`، واستبدل كل قيمة `REPLACE_...`. ولّد كلمات مرور PostgreSQL وRedis و`SAHEL_APP_PASSWORD` و`POSTGRES_EXPORTER_PASSWORD` والمفاتيح بـ`openssl rand -hex 32`، واجعل لكل دور قيمة مستقلة. لا تحفظ `.env` في Git ولا ترسل الأسرار في المحادثات.
 2. أضف سجل DNS لـ`app.sahels.net` إلى عنوان الخادم واجعل Proxy في Cloudflare مفعلاً. استخدم Cloudflare SSL/TLS mode **Full (strict)**.
 3. قبل تفعيل UFW، نفّذ النشر مع CIDR ثابت لجهاز الإدارة: `SSH_ALLOW_CIDR=203.0.113.10/32 ./infra/deploy.sh`. يستبدل `infra/cloudflare-ufw.sh` فتح HTTP/HTTPS العام بقواعد لعناوين Cloudflare المنشورة فقط. احرص على وجود console/مخرج طوارئ لدى مزود VPS قبل تغيير الجدار الناري.
 4. أصدر شهادة TLS لـ`app.sahels.net`، ثم ثبّت `infra/nginx-production.conf` في Nginx وأعد تحميله. يبقى HTTP مخصصاً لتحويل HTTPS وACME؛ لا تفتح منافذ Postgres أو Redis أو API أو أدوات المراقبة للعامة.
-5. ابدأ التطبيق بـ`docker compose up -d --build`. قاعدة البيانات وRedis وAPI والواجهة مرتبطة على loopback فقط؛ كلمات مرور Postgres وRedis ومفاتيح Meta مطلوبة ولا توجد قيم إنتاج افتراضية.
+5. ابدأ التطبيق بـ`docker compose up -d --build`. اتصال API يستخدم `sahel_app` غير المالك وRLS؛ migrations فقط تستخدم `DATABASE_MIGRATION_URL` الإداري. مراقب PostgreSQL يستخدم `sahel_monitor` بصلاحية `pg_monitor`. قاعدة البيانات وRedis وAPI والواجهة مرتبطة على loopback فقط؛ الأسرار مطلوبة ولا توجد كلمات مرور تشغيل افتراضية.
 6. فعّل المراقبة بـ`docker compose --profile monitoring up -d`. افتح Grafana عبر SSH tunnel إلى `127.0.0.1:3001` وPrometheus إلى `127.0.0.1:9090`. خزّن كلمة مرور Grafana القوية في `.env`.
 7. أعد `ALERTMANAGER_WEBHOOK_URL` إلى مستقبل متوافق مع Alertmanager لتسليم تنبيهات Prometheus، و`ALERT_WEBHOOK_URL` إلى مستقبل JSON بسيط لتنبيهات النسخ والفحص الدوري. القيمة النموذجية لا ترسل تنبيهات قبل استبدالها.
 8. جدْول النسخ اليومية وفحص الصحة بعد تحميل متغيرات `.env`:

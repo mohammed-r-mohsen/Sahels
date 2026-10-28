@@ -44,7 +44,10 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     environment:
-      DATABASE_URL: postgres://sahels:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/sahels
+      DATABASE_URL: postgres://sahel_app:${SAHEL_APP_PASSWORD:?Set SAHEL_APP_PASSWORD}@postgres:5432/sahels
+      DATABASE_MIGRATION_URL: postgres://sahels:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/sahels
+      SAHEL_APP_PASSWORD: ${SAHEL_APP_PASSWORD:?Set a unique SAHEL_APP_PASSWORD}
+      POSTGRES_EXPORTER_PASSWORD: ${POSTGRES_EXPORTER_PASSWORD:?Set a unique POSTGRES_EXPORTER_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       BIND_ADDR: 0.0.0.0:8080
@@ -109,10 +112,10 @@ services:
     restart: unless-stopped
     environment:
       DATA_SOURCE_URI: postgres:5432/sahels?sslmode=disable
-      DATA_SOURCE_USER: sahels
-      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      DATA_SOURCE_USER: sahel_monitor
+      DATA_SOURCE_PASS: ${POSTGRES_EXPORTER_PASSWORD:?Set POSTGRES_EXPORTER_PASSWORD}
     depends_on:
-      postgres: { condition: service_healthy }
+      api: { condition: service_healthy }
     logging: *bounded-logs
 
   redis-exporter:

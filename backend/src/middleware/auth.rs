@@ -68,13 +68,15 @@ async fn user_from_access_token(state: &AppState, token: &str) -> AppResult<Auth
     if claims.typ != "access" {
         return Err(AppError::Unauthorized);
     }
+    let mut tx = crate::db::begin_bypass(&state.db).await?;
     let user = sqlx::query_as::<_, (Option<Uuid>, String, String, bool)>(
         "SELECT clinic_id, role::text, email, is_active FROM users WHERE id = $1",
     )
     .bind(claims.sub)
-    .fetch_optional(&state.db)
+    .fetch_optional(&mut *tx)
     .await?
     .ok_or(AppError::Unauthorized)?;
+    tx.commit().await?;
 
     if !user.3 || user.0 != claims.clinic_id {
         return Err(AppError::Unauthorized);

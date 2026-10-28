@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
 -- App role used by the API (sets clinic_id via SET LOCAL)
 DO $$ BEGIN
-  CREATE ROLE sahel_app LOGIN PASSWORD 'sahel_app_change_me';
+  CREATE ROLE sahel_app NOLOGIN;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

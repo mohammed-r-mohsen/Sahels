@@ -97,49 +97,69 @@ async fn receive(
                         .map(|s| s.to_string());
 
                     if !phone_number_id.is_empty() && !from.is_empty() {
-                        let (clinic_id, patient_id) = messaging::ingest_inbound(
+                        let (clinic_id, patient_id, message_log_id) = messaging::ingest_inbound(
                             &state.db,
                             messaging::InboundMessage {
                                 phone_number_id: phone_number_id.into(),
                                 from: from.into(),
                                 body: body_text.into(),
-                                message_id,
-                            },
-                            state.config.integration_encryption_key.as_deref(),
-                        )
-                        .await?;
 
-                        let handled = messaging::handle_reminder_response(
-                            &state.db,
-                            &whatsapp_client,
-                            clinic_id,
-                            patient_id,
-                            phone_number_id,
-                            from,
-                            body_text,
-                            button_payload,
+                                if !messaging::claim_inbound_webhook(&state.db, clinic_id, message_log_id)
+                                    .await?
+                                {
+                                    continue;
+                                }
+                                message_id: message_id.clone(),
+                                let result: AppResult<()> = async {
+                                    let handled = messaging::handle_reminder_response(
                             state.config.integration_encryption_key.as_deref(),
                         )
                         .await?;
                         if !handled && !body_text.trim().is_empty() {
                             match messaging::handle_ai_message(
                                 &state.db,
+                                        body_text,
+                                        button_payload,
                                 &whatsapp_client,
-                                clinic_id,
                                 patient_id,
-                                phone_number_id,
-                                from,
-                                state.config.integration_encryption_key.as_deref(),
-                                &state.config.ollama_base_url,
-                            )
-                            .await
-                            {
-                                Ok(true) => {}
-                                Ok(false) => {
-                                    tracing::info!(%clinic_id, from, "inbound whatsapp message stored")
+                                    .await?;
+                                    if !handled && !body_text.trim().is_empty() {
+                                        match messaging::handle_ai_message(
+                                            &state.db,
+                                            &whatsapp_client,
+                                            clinic_id,
+                                            patient_id,
+                                            phone_number_id,
+                                            from,
+                                            state.config.integration_encryption_key.as_deref(),
+                                            &state.config.ollama_base_url,
+                                        )
+                                        .await?
+                                        {
+                                            true => {}
+                                            false => {
+                                                tracing::info!(%clinic_id, from, "inbound whatsapp message stored")
+                                            }
+                                        }
+                                    } else if !handled {
+                                        tracing::info!(%clinic_id, from, "non-text whatsapp message stored");
+                                    }
+                                    Ok(())
                                 }
-                                Err(error) => {
-                                    tracing::error!(%clinic_id, from, error = %error, "patient assistant failed")
+                                .await;
+
+                                match result {
+                                    Ok(()) => {
+                                        messaging::complete_inbound_webhook(&state.db, clinic_id, message_log_id)
+                                            .await?;
+                                    }
+                                    Err(error) => {
+                                        messaging::fail_inbound_webhook(&state.db, clinic_id, message_log_id)
+                                            .await?;
+                                        tracing::error!(%clinic_id, from, error = %error, "patient message processing failed");
+                                        return Err(error);
+                                    }
+                                }
                                 }
                             }
                         } else if !handled {

@@ -4,21 +4,14 @@ import { ArrowLeft, ChevronLeft, ShieldCheck, Sparkles, Stethoscope, TabletSmart
 const features = [
   { icon: Stethoscope, title: "إدارة المواعيد الذكية", text: "تقويم مُحسن، قوائم انتظار، وتنبيهات تلقائية لكل طبيب وعيادة." },
   { icon: Users, title: "خبرة المريض", text: "تجربة احترافية من الحجز إلى المتابعة والسداد والتذكير." },
-  { icon: Sparkles, title: "ذكاء اصطناعي", text: "رد سريع على واتساب/إنستغرام مع فحص الحجز وتوجيه الرسائل إلى الموظف عند الحاجة." },
+  { icon: Sparkles, title: "محادثات أوضح", text: "مساعد WhatsApp للحجز والاستعلام، وتحويل رسائل Instagram إلى فريق العيادة." },
   { icon: ShieldCheck, title: "التوافق والخصوصية", text: "حلول تدعم خصوصية المريض، الشروط، وسلامة البيانات وفق معايير السوق السعودي." },
 ];
 
-const stats = [
-  { label: "حجوزات مُنجزة", value: "12.8k" },
-  { label: "نسبة الحضور", value: "96%" },
-  { label: "تقليل عدم الحضور", value: "-41%" },
-  { label: "رسائل تلقائية", value: "3.4k" },
-];
-
 const plans = [
-  { name: "ابدأ", price: "299", highlight: false, perks: ["عيادة واحدة", "إدارة أساسية", "تذكير SMS", "تقارير شهرية"] },
-  { name: "نمو", price: "799", highlight: true, perks: ["حتى 5 أطباء", "قائمة انتظار", "تكامل واتساب", "تقارير متقدمة"] },
-  { name: "مستوى المؤسسة", price: "1499", highlight: false, perks: ["عدة عيادات", "دعم مخصص", "AI assistant", "API & Webhooks"] },
+  { name: "ابدأ", price: "299", highlight: false, perks: ["عيادة واحدة", "إدارة المواعيد", "إدارة الأطباء", "تقارير الحجوزات"] },
+  { name: "نمو", price: "469", highlight: true, perks: ["حتى 8 أطباء", "قائمة انتظار", "تكامل WhatsApp", "تقارير متقدمة"] },
+  { name: "توسع", price: "659", highlight: false, perks: ["عدد أطباء مرن", "قنوات متعددة", "دعم الفريق", "تحليلات متقدمة"] },
 ];
 
 const faqs = [
@@ -46,7 +39,8 @@ export default function HomePage() {
             <Link href="#workflow">كيف يعمل</Link>
             <Link href="#solutions">الحلول</Link>
             <Link href="#pricing">الأسعار</Link>
-            <Link href="#faq">الأسئلة</Link>
+            <Link href="/about">من نحن</Link>
+            <Link href="/contact">تواصل معنا</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -60,7 +54,7 @@ export default function HomePage() {
       </header>
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.15),transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.12),transparent_35%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)]" />
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-24">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
@@ -70,72 +64,54 @@ export default function HomePage() {
 
             <div className="space-y-5">
               <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-                إدارة مواعيد وعمليات لعيادات الأسنان بذكاء سعودي حقيقي.
+                عيادتك، مرتبة من أول موعد.
               </h1>
               <p className="max-w-xl text-lg leading-8 text-slate-600">
-                سهل يربط الحجز، التذكير، قائمة الانتظار، المدفوعات، التقارير، والرد على الرسائل في منصة واحدة مصممة للعناية الطبية واحتياجات عيادات الأسنان في السعودية.
+                منصة عربية لإدارة مواعيد العيادة والأطباء، وتنسيق الحضور والرسائل من مكان واحد.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-600 px-6 py-3.5 text-base font-bold text-white shadow-soft transition hover:bg-sky-700">
-                إنشاء حساب مجاني
+                ابدأ مع سهل
                 <ArrowLeft className="h-4 w-4" />
               </Link>
-              <Link href="/login" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3.5 text-base font-bold text-slate-800 transition hover:border-slate-300">
-                شاهد العرض
+              <Link href="#workflow" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3.5 text-base font-bold text-slate-800 transition hover:border-slate-300">
+                اكتشف طريقة العمل
               </Link>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {stats.map((item) => (
-                <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-                  <div className="text-2xl font-black text-slate-900">{item.value}</div>
-                  <div className="mt-1 text-sm text-slate-500">{item.label}</div>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-slate-500">مصمّم للعيادات في السعودية · العربية أولاً · صلاحيات مستقلة لكل عيادة</p>
           </div>
 
           <div className="relative">
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-soft">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-3 shadow-[0_28px_90px_rgba(15,23,42,0.14)]">
               <div className="rounded-[1.5rem] bg-slate-950 p-5 text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-slate-300">العيادة الذكية</div>
-                    <div className="mt-2 text-2xl font-black">مستشفى أسنان المدينة</div>
+                    <div className="text-xs text-slate-300">معاينة · بيانات توضيحية</div>
+                    <div className="mt-2 text-2xl font-black">مواعيد العيادة</div>
                   </div>
                   <div className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-300">نشط</div>
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-white/5 p-4">
-                    <div className="text-slate-300">الحجوزات اليوم</div>
-                    <div className="mt-2 text-3xl font-black text-white">48</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/5 p-4">
-                    <div className="text-slate-300">نسبة الحضور</div>
-                    <div className="mt-2 text-3xl font-black text-emerald-300">96%</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/5 p-4">
-                    <div className="text-slate-300">قائمة الانتظار</div>
-                    <div className="mt-2 text-3xl font-black text-amber-300">12</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/5 p-4">
-                    <div className="text-slate-300">التذكيرات</div>
-                    <div className="mt-2 text-3xl font-black text-sky-300">84</div>
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-2xl bg-slate-900 p-4">
-                  <div className="flex items-center justify-between text-sm text-slate-300">
-                    <span>الإيرادات الشهرية</span>
-                    <span>+18.4%</span>
-                  </div>
-                  <div className="mt-3 text-3xl font-black text-white">SAR 42,750</div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-700">
-                    <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-sky-400 to-emerald-400" />
-                  </div>
+                <div className="mt-6 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5 px-4">
+                  {[
+                    { time: "09:00", doctor: "د. نورة العتيبي", service: "فحص أسنان", status: "مؤكد" },
+                    { time: "10:30", doctor: "د. خالد الحربي", service: "تنظيف", status: "بانتظار" },
+                    { time: "12:00", doctor: "د. نورة العتيبي", service: "متابعة", status: "مؤكد" },
+                  ].map((appointment) => (
+                    <div key={`${appointment.time}-${appointment.doctor}`} className="flex items-center justify-between gap-3 py-4 text-sm">
+                      <div>
+                        <div className="font-semibold text-white">{appointment.service}</div>
+                        <div className="mt-1 text-xs text-slate-400">{appointment.doctor}</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-slate-200">{appointment.time}</div>
+                        <div className="mt-1 text-xs text-sky-300">{appointment.status}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -278,6 +254,8 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 text-sm text-slate-600 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>© 2026 Sahl. جميع الحقوق محفوظة.</div>
           <div className="flex items-center gap-5">
+            <Link href="/about">من نحن</Link>
+            <Link href="/contact">تواصل معنا</Link>
             <Link href="/privacy">الخصوصية</Link>
             <Link href="/terms">الشروط</Link>
             <Link href="/login">الدخول</Link>

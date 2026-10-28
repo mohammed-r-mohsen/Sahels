@@ -46,6 +46,8 @@ jobs:
     env:
       POSTGRES_PASSWORD: ci-postgres-secret-not-for-production
       REDIS_PASSWORD: ci-redis-secret-not-for-production
+      SAHEL_APP_PASSWORD: 0000000000000000000000000000000000000000000000000000000000000001
+      POSTGRES_EXPORTER_PASSWORD: 0000000000000000000000000000000000000000000000000000000000000002
       JWT_SECRET: ci-jwt-secret-not-for-production-0123456789
       GRAFANA_ADMIN_PASSWORD: ci-grafana-secret-not-for-production
       INTEGRATION_ENCRYPTION_KEY: ci-integration-key-not-for-production-0123456789
@@ -55,3 +57,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate Compose configuration
         run: docker compose config --quiet
+      - name: Start API and apply migrations
+        run: docker compose up -d --build --wait api
+      - name: Verify tenant isolation and booking capacity
+        run: bash scripts/security-check.sh
+      - name: Stop Compose services
+        if: always()
+        run: docker compose down --volumes --remove-orphans

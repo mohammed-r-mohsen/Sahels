@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
+bash "$ROOT_DIR/scripts/check-env.sh" "$ROOT_DIR/.env"
+
 echo "🚀 Starting Sahels Deployment..."
 
 # 1. Update System
