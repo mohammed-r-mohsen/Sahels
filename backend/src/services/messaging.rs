@@ -116,6 +116,72 @@ pub struct HandoffMessage {
     pub created_at: DateTime<Utc>,
 }
 
+pub async fn ingest_instagram_handoff(
+    pool: &PgPool,
+    instagram_account_id: &str,
+    sender_id: &str,
+    body: &str,
+    message_id: Option<&str>,
+) -> AppResult<()> {
+    let mut lookup = crate::db::begin_bypass(pool).await?;
+    let clinic_id: Option<Uuid> = sqlx::query_scalar(
+        r#"SELECT clinic_id FROM clinic_channel_integrations
+           WHERE channel = 'instagram' AND is_active
+             AND (external_id = $1 OR page_id = $1)
+           LIMIT 1"#,
+    )
+    .bind(instagram_account_id)
+    .fetch_optional(&mut *lookup)
+    .await?;
+    lookup.commit().await?;
+    let clinic_id = clinic_id.ok_or_else(|| AppError::NotFound("حساب Instagram غير مرتبط بعيادة".into()))?;
+
+    let mut tx = crate::db::begin_tenant(pool, Some(clinic_id), false).await?;
+    if let Some(message_id) = message_id {
+        let duplicate: bool = sqlx::query_scalar(
+            r#"SELECT EXISTS(
+                 SELECT 1 FROM message_logs
+                 WHERE clinic_id = $1 AND channel = 'instagram'
+                   AND meta->>'message_id' = $2
+               )"#,
+        )
+        .bind(clinic_id)
+        .bind(message_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        if duplicate {
+            tx.commit().await?;
+            return Ok(());
+        }
+    }
+
+    let patient_phone = format!("instagram:{sender_id}");
+    let patient_id: Uuid = sqlx::query_scalar(
+        r#"INSERT INTO patients (clinic_id, phone, source)
+           VALUES ($1, $2, 'instagram')
+           ON CONFLICT (clinic_id, phone) DO UPDATE SET phone = EXCLUDED.phone
+           RETURNING id"#,
+    )
+    .bind(clinic_id)
+    .bind(patient_phone)
+    .fetch_one(&mut *tx)
+    .await?;
+    sqlx::query(
+        r#"INSERT INTO message_logs (clinic_id, patient_id, channel, direction, body, handoff, meta)
+           VALUES ($1, $2, 'instagram', 'in', $3, TRUE,
+                   jsonb_build_object('message_id', $4, 'sender_id', $5))"#,
+    )
+    .bind(clinic_id)
+    .bind(patient_id)
+    .bind(body)
+    .bind(message_id.unwrap_or(""))
+    .bind(sender_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
 pub async fn list_handoffs(
     pool: &PgPool,
     user: &crate::middleware::AuthUser,

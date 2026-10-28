@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, CurrentSession } from "@/lib/api";
 import { Plus, Save, Search, Trash2 } from "lucide-react";
 
 type Doctor = {
@@ -49,6 +49,7 @@ export default function DoctorsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [canManage, setCanManage] = useState(false);
 
   const loadDoctors = useCallback(async () => {
     try {
@@ -62,6 +63,9 @@ export default function DoctorsPage() {
 
   useEffect(() => {
     void loadDoctors();
+    api<CurrentSession>("/auth/me")
+      .then((session) => setCanManage(session.role === "clinic_admin"))
+      .catch((loadError: unknown) => setError(errorMessage(loadError)));
   }, [loadDoctors]);
 
   async function selectDoctor(doctor: Doctor) {
@@ -163,6 +167,7 @@ export default function DoctorsPage() {
         </div>
 
         {error && <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        {!canManage && <p className="rounded-xl bg-sky-50 p-3 text-sm text-sky-800">عرض فقط. إدارة الأطباء وجداولهم متاحة لمدير العيادة.</p>}
 
         <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
           <section className="card p-5">
@@ -191,21 +196,21 @@ export default function DoctorsPage() {
           <section className="card p-5">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-black">{selectedId ? "بيانات الطبيب وجدوله" : "إضافة طبيب"}</h2>
-              {selectedId && <button type="button" onClick={() => { setSelectedId(""); setName(""); setSpecialty(""); setSchedules([]); }} className="btn-secondary"><Plus className="ml-2 h-4 w-4" /> طبيب جديد</button>}
+              {selectedId && canManage && <button type="button" onClick={() => { setSelectedId(""); setName(""); setSpecialty(""); setSchedules([]); }} className="btn-secondary"><Plus className="ml-2 h-4 w-4" /> طبيب جديد</button>}
             </div>
             <form onSubmit={selectedId ? saveDoctor : createDoctor} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-semibold">اسم الطبيب
-                  <input required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-right" />
+                  <input required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} disabled={!canManage} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-right disabled:bg-slate-50" />
                 </label>
                 <label className="text-sm font-semibold">التخصص
-                  <input maxLength={120} value={specialty} onChange={(event) => setSpecialty(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-right" />
+                  <input maxLength={120} value={specialty} onChange={(event) => setSpecialty(event.target.value)} disabled={!canManage} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-right disabled:bg-slate-50" />
                 </label>
                 <label className="text-sm font-semibold">مدة الموعد (دقيقة)
-                  <input required type="number" min={5} max={240} value={slotMinutes} onChange={(event) => setSlotMinutes(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-200 p-3" />
+                  <input required type="number" min={5} max={240} value={slotMinutes} onChange={(event) => setSlotMinutes(Number(event.target.value))} disabled={!canManage} className="mt-2 w-full rounded-xl border border-slate-200 p-3 disabled:bg-slate-50" />
                 </label>
                 <label className="text-sm font-semibold">السعة لكل فترة
-                  <input required type="number" min={1} max={100} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-200 p-3" />
+                  <input required type="number" min={1} max={100} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} disabled={!canManage} className="mt-2 w-full rounded-xl border border-slate-200 p-3 disabled:bg-slate-50" />
                 </label>
               </div>
               {selectedId && <div className="space-y-3">
@@ -215,17 +220,27 @@ export default function DoctorsPage() {
                   const schedule = schedules.find((item) => item.weekday === index);
                   return <div key={day} className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-2 text-sm">
                     <span className="w-20">{day}</span>
-                    <input aria-label={`بداية ${day}`} type="time" disabled={!schedule} value={schedule?.start_time || "09:00"} onChange={(event) => updateSchedule(index, "start_time", event.target.value)} className="rounded-lg border p-2 disabled:opacity-40" />
-                    <input aria-label={`نهاية ${day}`} type="time" disabled={!schedule} value={schedule?.end_time || "17:00"} onChange={(event) => updateSchedule(index, "end_time", event.target.value)} className="rounded-lg border p-2 disabled:opacity-40" />
-                    <button type="button" aria-label={`${schedule ? "إزالة" : "إضافة"} ${day}`} onClick={() => setSchedules((current) => schedule ? current.filter((item) => item.weekday !== index) : [...current, { weekday: index, start_time: "09:00", end_time: "17:00" }].sort((a, b) => a.weekday - b.weekday))} className="rounded-lg p-2 text-sky-700">{schedule ? <Trash2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}</button>
+                    <input aria-label={`بداية ${day}`} type="time" disabled={!schedule || !canManage} value={schedule?.start_time || "09:00"} onChange={(event) => updateSchedule(index, "start_time", event.target.value)} className="rounded-lg border p-2 disabled:opacity-40" />
+                    <input aria-label={`نهاية ${day}`} type="time" disabled={!schedule || !canManage} value={schedule?.end_time || "17:00"} onChange={(event) => updateSchedule(index, "end_time", event.target.value)} className="rounded-lg border p-2 disabled:opacity-40" />
+                    <button
+                      type="button"
+                      disabled={!canManage}
+                      aria-label={schedule ? `حذف ${day}` : `إضافة ${day}`}
+                      onClick={() => setSchedules((current) => schedule
+                        ? current.filter((item) => item.weekday !== index)
+                        : [...current, { weekday: index, start_time: "09:00", end_time: "17:00" }].sort((a, b) => a.weekday - b.weekday))}
+                      className="rounded-lg p-2 text-sky-700 disabled:opacity-40"
+                    >
+                      {schedule ? <Trash2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    </button>
                   </div>;
                 })}
                 <label className="flex items-center gap-2 text-sm font-semibold">
-                  <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} className="h-4 w-4 accent-sky-600" />
+                  <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} disabled={!canManage} className="h-4 w-4 accent-sky-600" />
                   الطبيب نشط ويستقبل الحجوزات
                 </label>
               </div>}
-              <button disabled={saving} className="btn-primary disabled:opacity-50"><Save className="ml-2 h-4 w-4" />{saving ? "جارٍ الحفظ..." : selectedId ? "حفظ بيانات الطبيب والجدول" : "إضافة الطبيب"}</button>
+              {canManage && <button disabled={saving} className="btn-primary disabled:opacity-50"><Save className="ml-2 h-4 w-4" />{saving ? "جارٍ الحفظ..." : selectedId ? "حفظ بيانات الطبيب والجدول" : "إضافة الطبيب"}</button>}
             </form>
           </section>
         </div>

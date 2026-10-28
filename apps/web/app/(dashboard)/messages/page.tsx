@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { api, ApiError } from "@/lib/api";
-import { Check, MessageSquareText, RefreshCw } from "lucide-react";
+import { Check, ExternalLink, MessageSquareText, RefreshCw } from "lucide-react";
 
 type HandoffMessage = {
   id: string;
@@ -89,7 +89,7 @@ export default function MessagesPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {message.patient_phone && (
+                  {message.channel === "whatsapp" && message.patient_phone && (
                     <a
                       href={`https://wa.me/${message.patient_phone.replace(/\D/g, "")}`}
                       target="_blank"
@@ -97,6 +97,17 @@ export default function MessagesPage() {
                       className="btn-secondary"
                     >
                       تواصل مع المريض
+                    </a>
+                  )}
+                  {message.channel === "instagram" && (
+                    <a
+                      href="https://business.facebook.com/latest/inbox"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-secondary"
+                    >
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                      فتح Meta Business Inbox
                     </a>
                   )}
                   <button

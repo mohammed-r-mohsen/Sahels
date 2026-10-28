@@ -1,5 +1,5 @@
 use axum::{Json, Router, extract::{Query, State}, routing::get};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde::Serialize;
 
 use crate::{
@@ -13,6 +13,73 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/overview", get(overview))
         .route("/no-show-risk", get(no_show_risk))
+        .route("/booking-reports", get(booking_reports))
+}
+
+#[derive(Debug, Serialize)]
+pub struct BookingSummary {
+    pub bookings: i64,
+    pub cancelled: i64,
+    pub completed: i64,
+    pub no_show: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BookingReports {
+    pub weekly: BookingSummary,
+    pub monthly: BookingSummary,
+}
+
+async fn booking_reports(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> AppResult<Json<BookingReports>> {
+    let clinic_id = user.require_clinic()?;
+    let mut tx = begin_tenant(&state.db, Some(clinic_id), user.is_super()).await?;
+    let counts: (i64, i64, i64, i64, i64, i64, i64, i64) = sqlx::query_as(
+        r#"
+        WITH bounds AS (
+          SELECT
+                        (date_trunc('week', NOW() AT TIME ZONE timezone) AT TIME ZONE timezone) AS week_start,
+                        (date_trunc('week', NOW() AT TIME ZONE timezone) AT TIME ZONE timezone) + INTERVAL '1 week' AS week_end,
+                        (date_trunc('month', NOW() AT TIME ZONE timezone) AT TIME ZONE timezone) AS month_start,
+                        (date_trunc('month', NOW() AT TIME ZONE timezone) AT TIME ZONE timezone) + INTERVAL '1 month' AS month_end
+          FROM clinics WHERE id = $1
+        )
+        SELECT
+                    COUNT(*) FILTER (WHERE a.starts_at >= b.week_start AND a.starts_at < b.week_end)::bigint,
+                    COUNT(*) FILTER (WHERE a.starts_at >= b.week_start AND a.starts_at < b.week_end AND a.status = 'cancelled')::bigint,
+                    COUNT(*) FILTER (WHERE a.starts_at >= b.week_start AND a.starts_at < b.week_end AND a.status = 'completed')::bigint,
+                    COUNT(*) FILTER (WHERE a.starts_at >= b.week_start AND a.starts_at < b.week_end AND a.status = 'no_show')::bigint,
+          COUNT(*)::bigint,
+          COUNT(*) FILTER (WHERE a.status = 'cancelled')::bigint,
+          COUNT(*) FILTER (WHERE a.status = 'completed')::bigint,
+          COUNT(*) FILTER (WHERE a.status = 'no_show')::bigint
+        FROM appointments a
+        CROSS JOIN bounds b
+        WHERE a.clinic_id = $1
+          AND a.starts_at >= b.month_start
+                    AND a.starts_at < b.month_end
+        "#,
+    )
+    .bind(clinic_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(Json(BookingReports {
+        weekly: BookingSummary {
+            bookings: counts.0,
+            cancelled: counts.1,
+            completed: counts.2,
+            no_show: counts.3,
+        },
+        monthly: BookingSummary {
+            bookings: counts.4,
+            cancelled: counts.5,
+            completed: counts.6,
+            no_show: counts.7,
+        },
+    }))
 }
 
 #[derive(Debug, Deserialize)]

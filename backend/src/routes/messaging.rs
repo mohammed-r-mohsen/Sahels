@@ -151,5 +151,49 @@ async fn receive(
         }
     }
 
+    if payload.get("object").and_then(Value::as_str) == Some("instagram") {
+        if let Some(entries) = payload.get("entry").and_then(Value::as_array) {
+            for entry in entries {
+                let events = entry
+                    .get("messaging")
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default();
+                for event in events {
+                    let Some(message) = event.get("message") else { continue };
+                    if message.get("is_echo").and_then(Value::as_bool) == Some(true) {
+                        continue;
+                    }
+                    let account_id = event
+                        .pointer("/recipient/id")
+                        .and_then(Value::as_str)
+                        .or_else(|| entry.get("id").and_then(Value::as_str))
+                        .unwrap_or("");
+                    let sender_id = event
+                        .pointer("/sender/id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    if account_id.is_empty() || sender_id.is_empty() {
+                        continue;
+                    }
+                    let text = message
+                        .get("text")
+                        .and_then(Value::as_str)
+                        .filter(|text| !text.trim().is_empty())
+                        .unwrap_or("رسالة أو مرفق وارد من Instagram؛ يرجى المتابعة عبر Meta Business Inbox.");
+                    let message_id = message.get("mid").and_then(Value::as_str);
+                    messaging::ingest_instagram_handoff(
+                        &state.db,
+                        account_id,
+                        sender_id,
+                        text,
+                        message_id,
+                    )
+                    .await?;
+                }
+            }
+        }
+    }
+
     Ok(Json(serde_json::json!({ "ok": true })))
 }
