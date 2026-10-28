@@ -666,11 +666,15 @@ async fn enqueue_due_reminders(pool: &PgPool) -> AppResult<()> {
         INSERT INTO appointment_reminders (clinic_id, appointment_id)
         SELECT a.clinic_id, a.id
         FROM appointments a
-        JOIN patients p ON p.id = a.patient_id AND p.phone <> ''
+                JOIN clinics c ON c.id = a.clinic_id
+                JOIN patients p ON p.id = a.patient_id AND p.clinic_id = a.clinic_id AND p.phone <> ''
         WHERE a.status IN ('pending', 'confirmed')
           AND a.reminder_sent = FALSE
           AND a.starts_at > NOW()
-          AND a.starts_at <= NOW() + INTERVAL '4 hours'
+                    AND a.starts_at <= NOW() + make_interval(hours => CASE
+                        WHEN p.risk_score >= 0.4 THEN GREATEST(c.reminder_hours, 24)
+                        ELSE c.reminder_hours
+                    END)
           AND (
             EXISTS (
               SELECT 1 FROM clinic_channel_integrations ci

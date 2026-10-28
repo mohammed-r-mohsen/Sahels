@@ -1,4 +1,5 @@
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{Json, Router, extract::{Query, State}, routing::get};
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::{
@@ -9,7 +10,31 @@ use crate::{
 };
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/overview", get(overview))
+    Router::new()
+        .route("/overview", get(overview))
+        .route("/no-show-risk", get(no_show_risk))
+}
+
+#[derive(Debug, Deserialize)]
+struct NoShowRiskQuery {
+    days: Option<i64>,
+}
+
+async fn no_show_risk(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Query(query): Query<NoShowRiskQuery>,
+) -> AppResult<Json<Vec<crate::services::no_show_prediction::NoShowPrediction>>> {
+    let days = query.days.unwrap_or(7);
+    if !(1..=30).contains(&days) {
+        return Err(crate::error::AppError::BadRequest(
+            "يجب أن تكون الفترة بين يوم و30 يوماً".into(),
+        ));
+    }
+    let clinic_id = user.require_clinic()?;
+    Ok(Json(
+        crate::services::no_show_prediction::upcoming(&state.db, clinic_id, days).await?,
+    ))
 }
 
 #[derive(Debug, Serialize)]

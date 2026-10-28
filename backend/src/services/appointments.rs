@@ -565,7 +565,16 @@ pub async fn update_status(
 
     if status == "no_show" && previous_status != "no_show" {
         sqlx::query(
-            "UPDATE patients SET no_show_count = no_show_count + 1 WHERE id = $1",
+            r#"
+            UPDATE patients
+            SET no_show_count = no_show_count + 1,
+                risk_score = CASE
+                    WHEN no_show_count + visit_count + 1 >= 2
+                    THEN (no_show_count + 1)::numeric / (no_show_count + visit_count + 1)
+                    ELSE NULL
+                END
+            WHERE id = $1
+            "#,
         )
         .bind(appt.patient_id)
         .execute(&mut *tx)
@@ -573,7 +582,18 @@ pub async fn update_status(
     }
 
     if status == "completed" && previous_status != "completed" {
-        sqlx::query("UPDATE patients SET visit_count = visit_count + 1 WHERE id = $1")
+        sqlx::query(
+            r#"
+            UPDATE patients
+            SET visit_count = visit_count + 1,
+                risk_score = CASE
+                    WHEN no_show_count + visit_count + 1 >= 2
+                    THEN no_show_count::numeric / (no_show_count + visit_count + 1)
+                    ELSE NULL
+                END
+            WHERE id = $1
+            "#,
+        )
             .bind(appt.patient_id)
             .execute(&mut *tx)
             .await?;
