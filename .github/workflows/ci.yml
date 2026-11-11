@@ -61,6 +61,8 @@ jobs:
         run: docker compose up -d --build --wait api
       - name: Verify tenant isolation and booking capacity
         run: bash scripts/security-check.sh
+      - name: Verify appointment API rejects concurrent duplicate bookings
+        run: bash scripts/test-appointment-api.sh
       - name: Stop Compose services
         if: always()
         run: docker compose down --volumes --remove-orphans

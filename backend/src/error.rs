@@ -30,6 +30,10 @@ pub enum AppError {
     Other(#[from] anyhow::Error),
 }
 
+fn is_appointment_conflict_code(code: Option<&str>) -> bool {
+    code == Some("23P01")
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, code, message) = match &self {
@@ -49,12 +53,23 @@ impl IntoResponse for AppError {
                 "فعّل المصادقة الثنائية قبل استخدام النظام".into(),
             ),
             AppError::Sqlx(e) => {
-                tracing::error!(error = %e, "database error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "db_error",
-                    "خطأ في قاعدة البيانات".into(),
-                )
+                let code = e
+                    .as_database_error()
+                    .and_then(|database_error| database_error.code());
+                if is_appointment_conflict_code(code.as_deref()) {
+                    (
+                        StatusCode::CONFLICT,
+                        "conflict",
+                        "الموعد محجوز مسبقاً".into(),
+                    )
+                } else {
+                    tracing::error!(error = %e, "database error");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "db_error",
+                        "خطأ في قاعدة البيانات".into(),
+                    )
+                }
             }
             AppError::Jwt(_) => (StatusCode::UNAUTHORIZED, "invalid_token", "رمز غير صالح".into()),
             AppError::Other(e) => {
@@ -72,3 +87,15 @@ impl IntoResponse for AppError {
 }
 
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::is_appointment_conflict_code;
+
+    #[test]
+    fn exclusion_violation_is_an_appointment_conflict() {
+        assert!(is_appointment_conflict_code(Some("23P01")));
+        assert!(!is_appointment_conflict_code(Some("23505")));
+        assert!(!is_appointment_conflict_code(None));
+    }
+}
