@@ -1,9 +1,9 @@
-type Column<T extends Record<string, any>> = {
+type Column<T extends Record<string, unknown>> = {
   key: keyof T;
   header: string;
 };
 
-export function DataTable<T extends Record<string, any>>({ title, rows, columns }: { title: string; rows: T[]; columns: Column<T>[] }) {
+export function DataTable<T extends Record<string, unknown>>({ title, rows, columns }: { title: string; rows: T[]; columns: Column<T>[] }) {
   return (
     <div className="card overflow-hidden">
       <div className="border-b border-slate-200 p-5">
@@ -25,13 +25,13 @@ export function DataTable<T extends Record<string, any>>({ title, rows, columns 
                   const value = row[column.key];
                   const text = String(value ?? "");
                   if (text.startsWith("مؤكد") || text.startsWith("نشط") || text.startsWith("حضور") || text.startsWith("مكتمل") || text.startsWith("منجزة") || text.startsWith("مفتوحة") || text.startsWith("جديد")) {
-                    return <td key={String(column.key)} className="px-5 py-4"><span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">{value}</span></td>;
+                    return <td key={String(column.key)} className="px-5 py-4"><span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">{text}</span></td>;
                   }
                   if (text.startsWith("قائمة انتظار") || text.startsWith("منتظر") || text.startsWith("تأخير") || text.startsWith("انتظار")) {
-                    return <td key={String(column.key)} className="px-5 py-4"><span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">{value}</span></td>;
+                    return <td key={String(column.key)} className="px-5 py-4"><span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">{text}</span></td>;
                   }
                   if (text.startsWith("ملغي") || text.startsWith("غير موجود") || text.startsWith("مرفوض")) {
-                    return <td key={String(column.key)} className="px-5 py-4"><span className="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-700">{value}</span></td>;
+                    return <td key={String(column.key)} className="px-5 py-4"><span className="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-700">{text}</span></td>;
                   }
                   return <td key={String(column.key)} className="px-5 py-4">{value}</td>;
                 })}

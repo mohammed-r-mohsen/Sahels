@@ -79,6 +79,7 @@ services:
       context: ./apps/web
       args:
         IAM_API_URL: http://api:8080
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/iam}
     restart: unless-stopped
     depends_on:
       api: { condition: service_healthy }

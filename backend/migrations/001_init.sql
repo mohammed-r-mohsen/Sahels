@@ -318,40 +318,52 @@ ALTER TABLE audit_logs FORCE ROW LEVEL SECURITY;
 
 -- Clinics: tenant sees own row; super sees all
 CREATE POLICY clinics_tenant ON clinics
-  USING (app_is_super() OR id = app_clinic_id());
+  USING (app_is_super() OR id = app_clinic_id())
+  WITH CHECK (app_is_super() OR id = app_clinic_id());
 
 CREATE POLICY users_tenant ON users
-  USING (app_is_super() OR clinic_id = app_clinic_id() OR role = 'super_admin');
+  USING (app_is_super() OR clinic_id = app_clinic_id() OR role = 'super_admin')
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id() OR role = 'super_admin');
 
 CREATE POLICY doctors_tenant ON doctors
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY schedules_tenant ON doctor_schedules
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY patients_tenant ON patients
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY consents_tenant ON consents
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY appointments_tenant ON appointments
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY waiting_tenant ON waiting_list
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY tokens_tenant ON clinic_tokens
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY messages_tenant ON message_logs
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY payments_tenant ON payments
-  USING (app_is_super() OR clinic_id = app_clinic_id());
+  USING (app_is_super() OR clinic_id = app_clinic_id())
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 CREATE POLICY audit_tenant ON audit_logs
-  USING (app_is_super() OR clinic_id = app_clinic_id() OR clinic_id IS NULL);
+  USING (app_is_super() OR clinic_id = app_clinic_id() OR clinic_id IS NULL)
+  WITH CHECK (app_is_super() OR clinic_id = app_clinic_id());
 
 -- Grant table access to app role (RLS still applies)
 GRANT USAGE ON SCHEMA public TO sahel_app;
