@@ -483,9 +483,7 @@ pub async fn create_staff(
     if phone.is_some_and(|value| value.chars().count() > 32) {
         return Err(AppError::BadRequest("رقم الهاتف غير صالح".into()));
     }
-    if input.password.chars().count() < 12 || input.password.len() > 1024 {
-        return Err(AppError::BadRequest("كلمة المرور يجب أن تكون 12 حرفاً على الأقل".into()));
-    }
+    crate::services::auth::validate_password(&input.password)?;
     validate_staff_role(&input.role)?;
     let clinic_id = user.require_clinic()?;
     let password_hash = crate::auth::hash_password(&input.password)?;

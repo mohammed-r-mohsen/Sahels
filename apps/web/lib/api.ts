@@ -22,6 +22,7 @@ export type CurrentSession = {
   email: string;
   full_name: string;
   role: string;
+  mfa_enabled: boolean;
 };
 
 export class ApiError extends Error {
@@ -31,14 +32,23 @@ export class ApiError extends Error {
   }
 }
 
-function saveTokens(data: TokenPair) {
-  localStorage.setItem("sahel_access", data.access_token);
-  localStorage.setItem("sahel_refresh", data.refresh_token);
+function saveTokens(data: TokenPair, rememberMe = false) {
+  clearTokens();
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem("sahel_access", data.access_token);
+  storage.setItem("sahel_refresh", data.refresh_token);
 }
 
 function clearTokens() {
   localStorage.removeItem("sahel_access");
   localStorage.removeItem("sahel_refresh");
+  sessionStorage.removeItem("sahel_access");
+  sessionStorage.removeItem("sahel_refresh");
+}
+
+function storedToken(name: "sahel_access" | "sahel_refresh") {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(name) || sessionStorage.getItem(name);
 }
 
 async function request<T>(
@@ -48,9 +58,7 @@ async function request<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const accessToken = typeof window === "undefined"
-    ? null
-    : localStorage.getItem("sahel_access");
+  const accessToken = storedToken("sahel_access");
   if (accessToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -67,7 +75,7 @@ async function request<T>(
     path !== "/auth/refresh" &&
     typeof window !== "undefined"
   ) {
-    const refreshToken = localStorage.getItem("sahel_refresh");
+    const refreshToken = storedToken("sahel_refresh");
     if (refreshToken) {
       try {
         await refreshSession();
@@ -92,12 +100,21 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return request<T>(path, init);
 }
 
-export async function login(email: string, password: string) {
+export async function login(
+  email: string,
+  password: string,
+  options: { rememberMe?: boolean; totpCode?: string } = {}
+) {
   const data = await request<TokenPair>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({
+      email,
+      password,
+      remember_me: options.rememberMe ?? false,
+      totp_code: options.totpCode || null,
+    })
   }, false);
-  saveTokens(data);
+  saveTokens(data, options.rememberMe ?? false);
   return data;
 }
 
@@ -113,7 +130,7 @@ export async function registerClinic(payload: {
     method: "POST",
     body: JSON.stringify(payload)
   }, false);
-  saveTokens(data);
+  saveTokens(data, true);
   return data;
 }
 
@@ -121,13 +138,14 @@ export async function refreshSession() {
   if (typeof window === "undefined") {
     throw new Error("تحديث الجلسة متاح من المتصفح فقط.");
   }
-  const refreshToken = localStorage.getItem("sahel_refresh");
+  const refreshToken = storedToken("sahel_refresh");
   if (!refreshToken) throw new Error("انتهت الجلسة. سجّل الدخول مرة أخرى.");
+  const rememberMe = localStorage.getItem("sahel_refresh") !== null;
   const data = await request<TokenPair>("/auth/refresh", {
     method: "POST",
     body: JSON.stringify({ refresh_token: refreshToken })
   }, false);
-  saveTokens(data);
+  saveTokens(data, rememberMe);
   return data;
 }
 
@@ -135,7 +153,7 @@ export async function logout() {
   if (typeof window === "undefined") {
     throw new Error("تسجيل الخروج متاح من المتصفح فقط.");
   }
-  const refreshToken = localStorage.getItem("sahel_refresh");
+  const refreshToken = storedToken("sahel_refresh");
   if (refreshToken) {
     try {
       await request("/auth/logout", {

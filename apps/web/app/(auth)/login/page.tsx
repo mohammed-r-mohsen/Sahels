@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Lock, Mail } from "lucide-react";
-import { login } from "@/lib/api";
+import { ApiError, login } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [needsMfa, setNeedsMfa] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,12 +19,17 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget);
 
     try {
-      await login(
-        String(formData.get("email")),
-        String(formData.get("password"))
-      );
+      await login(String(formData.get("email")), String(formData.get("password")), {
+        rememberMe: formData.get("remember_me") === "on",
+        totpCode: needsMfa ? String(formData.get("totp_code") || "") : undefined,
+      });
       router.push("/dashboard");
     } catch (submitError) {
+      if (submitError instanceof ApiError && submitError.status === 428) {
+        setNeedsMfa(true);
+        setError("أدخل رمز المصادقة من تطبيقك لإكمال تسجيل الدخول.");
+        return;
+      }
       setError(submitError instanceof Error ? submitError.message : "تعذر تسجيل الدخول.");
     } finally {
       setPending(false);
@@ -86,8 +92,17 @@ export default function LoginPage() {
               </div>
             </label>
 
-            <div className="flex justify-end text-sm">
-              <span className="text-slate-400">استعادة كلمة المرور قريبًا</span>
+            {needsMfa && <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">رمز المصادقة أو رمز الاسترداد</span>
+              <input name="totp_code" type="text" inputMode="text" autoComplete="one-time-code" pattern="([0-9]{6}|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{8})" minLength={6} maxLength={17} required autoFocus className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-center font-mono tracking-[0.2em] outline-none focus:border-sky-600" />
+            </label>}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <label className="flex min-h-11 items-center gap-2 text-slate-600">
+                <input name="remember_me" type="checkbox" className="h-4 w-4 accent-sky-700" />
+                تذكرني على هذا الجهاز
+              </label>
+              <Link href="/forgot-password" className="font-semibold text-sky-700">نسيت كلمة المرور؟</Link>
             </div>
 
             {error && <p role="alert" className="text-sm font-semibold text-red-600">{error}</p>}

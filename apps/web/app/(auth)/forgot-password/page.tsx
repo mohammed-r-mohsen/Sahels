@@ -1,26 +1,23 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-      <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <div className="text-sm font-bold tracking-[0.2em] text-sky-700">استعادة الوصول</div>
-            <h1 className="mt-2 text-3xl font-black text-slate-900">نسيت كلمة المرور؟</h1>
-          </div>
-          <Link href="/login" className="text-sm font-semibold text-slate-500">تسجيل الدخول</Link>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5 text-slate-900">
+      <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+        <Link href="/login" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-600 hover:text-sky-700">
+          <ArrowRight className="h-4 w-4" /> العودة لتسجيل الدخول
+        </Link>
+        <div className="mt-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+          <Mail className="h-5 w-5" />
         </div>
-
-        <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
-          استعادة كلمة المرور غير مفعّلة حالياً. تواصل مع مسؤول النظام لاستعادة الوصول.
-        </div>
-
-        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">
-          <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          حماية بيانات المريض والخصوصية مضمونة
-        </div>
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight">استعادة الوصول</h1>
+        <p className="mt-3 leading-7 text-slate-600">
+          لا تتوفر إعادة تعيين آلية لكلمة المرور بعد. تواصل مع الدعم من بريد العيادة المسجل للتحقق من ملكية الحساب.
+        </p>
+        <a href="mailto:support@sahels.net?subject=Password%20recovery" className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-sky-700 px-5 font-semibold text-white hover:bg-sky-800">
+          مراسلة الدعم <Mail className="h-4 w-4" />
+        </a>
       </div>
     </main>
   );

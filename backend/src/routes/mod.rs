@@ -20,12 +20,20 @@ pub fn api_router(state: AppState) -> Router {
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             crate::middleware::auth::require_active_subscription,
+        ))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            crate::middleware::auth::require_mfa,
         ));
+    let billing_routes = billing::router().route_layer(middleware::from_fn_with_state(
+        state.clone(),
+        crate::middleware::auth::require_mfa,
+    ));
 
     Router::new()
         .route("/health", get(health::health))
         .nest("/auth", auth::router())
-        .nest("/billing", billing::router())
+        .nest("/billing", billing_routes)
         .nest("/webhooks", messaging::router())
         .merge(operational_routes)
         .with_state(state)

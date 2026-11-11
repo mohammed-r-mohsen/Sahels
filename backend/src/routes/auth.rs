@@ -1,7 +1,8 @@
 use axum::{
     Json, Router,
-    extract::State,
-    routing::{get, post},
+    extract::{Path, State},
+    http::HeaderMap,
+    routing::{delete, get, post, put},
 };
 use serde::Deserialize;
 use validator::Validate;
@@ -20,6 +21,12 @@ pub fn router() -> Router<AppState> {
         .route("/refresh", post(refresh))
         .route("/logout", post(logout))
         .route("/me", get(me))
+        .route("/sessions", get(sessions))
+        .route("/sessions/{id}", delete(revoke_session))
+        .route("/sessions/revoke-all", post(revoke_all_sessions))
+        .route("/password", put(change_password))
+        .route("/mfa/setup", post(mfa_setup))
+        .route("/mfa/enable", post(mfa_enable))
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -42,6 +49,9 @@ pub struct RegisterBody {
 pub struct LoginBody {
     pub email: String,
     pub password: String,
+    #[serde(default)]
+    pub remember_me: bool,
+    pub totp_code: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,9 +82,20 @@ async fn register(
 
 async fn login(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(body): Json<LoginBody>,
 ) -> AppResult<Json<auth_svc::TokenPair>> {
-    let tokens = auth_svc::login(&state.db, &state.config, &body.email, &body.password).await?;
+    let user_agent = headers.get(axum::http::header::USER_AGENT).and_then(|value| value.to_str().ok());
+    let tokens = auth_svc::login(
+        &state.db,
+        &state.config,
+        &body.email,
+        &body.password,
+        body.totp_code.as_deref(),
+        body.remember_me,
+        user_agent,
+    )
+    .await?;
     Ok(Json(tokens))
 }
 
@@ -99,4 +120,71 @@ async fn me(
     user: AuthUser,
 ) -> AppResult<Json<auth_svc::CurrentSession>> {
     Ok(Json(auth_svc::current_session(&state.db, &user).await?))
+}
+
+async fn sessions(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> AppResult<Json<Vec<auth_svc::UserSession>>> {
+    Ok(Json(auth_svc::list_sessions(&state.db, &user).await?))
+}
+
+async fn revoke_session(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(id): Path<uuid::Uuid>,
+) -> AppResult<Json<serde_json::Value>> {
+    auth_svc::revoke_session(&state.db, &user, id).await?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+async fn revoke_all_sessions(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> AppResult<Json<serde_json::Value>> {
+    auth_svc::revoke_all_sessions(&state.db, &user).await?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+#[derive(Debug, Deserialize)]
+struct ChangePasswordBody {
+    current_password: String,
+    new_password: String,
+}
+
+async fn change_password(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Json(body): Json<ChangePasswordBody>,
+) -> AppResult<Json<serde_json::Value>> {
+    auth_svc::change_password(
+        &state.db,
+        &user,
+        &body.current_password,
+        &body.new_password,
+    )
+    .await?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+async fn mfa_setup(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> AppResult<Json<auth_svc::MfaSetupInfo>> {
+    Ok(Json(auth_svc::setup_mfa(&state.db, &state.config, &user).await?))
+}
+
+#[derive(Debug, Deserialize)]
+struct MfaCodeBody {
+    code: String,
+}
+
+async fn mfa_enable(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Json(body): Json<MfaCodeBody>,
+) -> AppResult<Json<auth_svc::MfaEnableResult>> {
+    Ok(Json(
+        auth_svc::enable_mfa(&state.db, &state.config, &user, &body.code).await?,
+    ))
 }

@@ -20,6 +20,8 @@ pub enum AppError {
     BadRequest(String),
     #[error("subscription inactive")]
     SubscriptionInactive,
+    #[error("multi-factor authentication required")]
+    MfaRequired,
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
@@ -40,6 +42,11 @@ impl IntoResponse for AppError {
                 StatusCode::PAYMENT_REQUIRED,
                 "subscription_inactive",
                 "اشتراك العيادة غير نشط".into(),
+            ),
+            AppError::MfaRequired => (
+                StatusCode::PRECONDITION_REQUIRED,
+                "mfa_required",
+                "فعّل المصادقة الثنائية قبل استخدام النظام".into(),
             ),
             AppError::Sqlx(e) => {
                 tracing::error!(error = %e, "database error");

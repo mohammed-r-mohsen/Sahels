@@ -20,6 +20,14 @@
 
 GitHub Actions يشغّل CI للـ Rust وNext.js وCompose. النشر متاح يدوياً من `main` عبر workflow `Deploy production` بعد ضبط GitHub Environment باسم `production` والأسرار `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`. يتطلب مضيف النشر checkout نظيفاً للمستودع في `/opt/sahels` وملف `.env` مضبوطاً.
 
+## IAM والتحقق الأمني
+
+- يلزم مدير العيادة وsuper-admin إعداد TOTP قبل استخدام مسارات التشغيل أو الفوترة. مفتاح TOTP يُشفّر بمفتاح `INTEGRATION_ENCRYPTION_KEY`، ورموز الاسترداد تُخزن hashes وتُستهلك مرة واحدة.
+- جلسات refresh تُعرض في صفحة الجلسات؛ تغيير كلمة المرور أو revoke-all يوقف refresh tokens ويُبطل access JWTs عبر `sessions_revoked_before`.
+- كلمات المرور تتطلب 12 حرفاً وثلاث فئات من الأحرف/الأرقام/الرموز، مع رفض قائمة كلمات مرور شائعة محدودة. أضف فحصاً خارجياً لقوائم كلمات المرور المخترقة قبل اعتماد سياسة امتثال أوسع.
+- التسجيل يقبل عناوين Gmail وHotmail وغيرها من عناوين البريد الصالحة؛ لا يوجد OAuth مع Google أو Microsoft. إعادة تعيين كلمة المرور بالبريد غير مفعّلة، ومسار النسيان يوجه إلى الدعم.
+- قبل الإنتاج شغّل `bash scripts/security-check.sh`؛ يختبر RLS للقراءة والكتابة، FORCE RLS وWITH CHECK، ومنع تجاوز سعة الطبيب. يجب تشغيله بعد تطبيق migrations على PostgreSQL فعلي.
+
 ## المتطلبات
 
 - VPS في السعودية (Oracle Cloud Jeddah أو مزود محلي)
@@ -40,8 +48,9 @@ apt install docker-compose-plugin nginx certbot python3-certbot-nginx -y
 cd /opt
 git clone https://github.com/USER/sahels.git
 cd sahels
-cp .env.single.example .env
-nano .env  # عدّل القيم
+cp .env.production.example .env
+nano .env  # ولّد الأسرار واستبدل كل REPLACE_...
+bash scripts/check-env.sh .env
 
 docker compose up -d --build
 docker compose logs -f
@@ -63,7 +72,8 @@ server {
 
 ln -s /etc/nginx/sites-available/sahels /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
-certbot --nginx -d clinic1.example.com
+# ضع شهادة Cloudflare Origin CA ومفتاحها في المسارات المحددة في infra/nginx-production.conf
+# واضبط Cloudflare على Full (strict)
 
 docker compose exec -T postgres psql -U sahels -d sahels < scripts/seed-clinic.sql
 

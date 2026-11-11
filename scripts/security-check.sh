@@ -34,6 +34,23 @@ BEGIN
   IF unprotected_tables IS NOT NULL THEN
     RAISE EXCEPTION 'Tenant tables missing forced RLS: %', unprotected_tables;
   END IF;
+
+  SELECT array_agg(policyname ORDER BY policyname)
+    INTO unprotected_tables
+    FROM pg_policies policies
+   WHERE policies.schemaname = 'public'
+     AND policies.cmd IN ('ALL', 'INSERT', 'UPDATE')
+     AND policies.with_check IS NULL
+     AND EXISTS (
+       SELECT 1 FROM information_schema.columns columns
+       WHERE columns.table_schema = 'public'
+         AND columns.table_name = policies.tablename
+         AND columns.column_name = 'clinic_id'
+     );
+
+  IF unprotected_tables IS NOT NULL THEN
+    RAISE EXCEPTION 'Tenant write policies missing WITH CHECK: %', unprotected_tables;
+  END IF;
 END $$;
 
 INSERT INTO clinics (id, name, slug) VALUES

@@ -22,6 +22,7 @@ pub struct AuthUser {
     pub clinic_id: Option<Uuid>,
     pub role: String,
     pub email: String,
+    pub mfa_enabled: bool,
 }
 
 impl AuthUser {
@@ -69,8 +70,10 @@ async fn user_from_access_token(state: &AppState, token: &str) -> AppResult<Auth
         return Err(AppError::Unauthorized);
     }
     let mut tx = crate::db::begin_bypass(&state.db).await?;
-    let user = sqlx::query_as::<_, (Option<Uuid>, String, String, bool)>(
-        "SELECT clinic_id, role::text, email, is_active FROM users WHERE id = $1",
+    let user = sqlx::query_as::<_, (Option<Uuid>, String, String, bool, Option<chrono::DateTime<chrono::Utc>>, bool)>(
+        r#"SELECT u.clinic_id, u.role::text, u.email, u.is_active, u.sessions_revoked_before,
+                  EXISTS (SELECT 1 FROM user_mfa m WHERE m.user_id = u.id AND m.enabled_at IS NOT NULL)
+           FROM users u WHERE u.id = $1"#,
     )
     .bind(claims.sub)
     .fetch_optional(&mut *tx)
@@ -81,12 +84,27 @@ async fn user_from_access_token(state: &AppState, token: &str) -> AppResult<Auth
     if !user.3 || user.0 != claims.clinic_id {
         return Err(AppError::Unauthorized);
     }
+    if user.4.is_some_and(|revoked_before| claims.iat <= revoked_before.timestamp()) {
+        return Err(AppError::Unauthorized);
+    }
     Ok(AuthUser {
         user_id: claims.sub,
         clinic_id: user.0,
         role: user.1,
         email: user.2,
+        mfa_enabled: user.5,
     })
+}
+
+pub async fn require_mfa(
+    user: AuthUser,
+    req: Request,
+    next: Next,
+) -> AppResult<Response> {
+    if matches!(user.role.as_str(), "clinic_admin" | "super_admin") && !user.mfa_enabled {
+        return Err(AppError::MfaRequired);
+    }
+    Ok(next.run(req).await)
 }
 
 pub fn require_roles(user: &AuthUser, allowed: &[&str]) -> AppResult<()> {

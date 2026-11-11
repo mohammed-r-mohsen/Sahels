@@ -11,6 +11,7 @@ import {
   Grid2x2,
   LayoutDashboard,
   MessageSquareText,
+  MonitorSmartphone,
   Settings,
   ShieldCheck,
   Stethoscope,
@@ -28,6 +29,7 @@ const navItems = [
   { label: "قائمة الانتظار", href: "/waiting-list", icon: Bell },
   { label: "التقارير", href: "/reports", icon: Grid2x2 },
   { label: "الإعدادات", href: "/settings", icon: Settings },
+  { label: "الجلسات والأمان", href: "/sessions", icon: MonitorSmartphone },
   { label: "التكاملات", href: "/integrations", icon: MessageSquareText },
   { label: "الفواتير", href: "/billing", icon: CreditCard, adminOnly: true },
   { label: "AI Assistant", href: "/ai-assistant", icon: WandSparkles },
@@ -55,6 +57,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       try {
         const currentSession = await api<CurrentSession>("/auth/me");
+        if (
+          active &&
+          ["clinic_admin", "super_admin"].includes(currentSession.role) &&
+          !currentSession.mfa_enabled
+        ) {
+          router.replace("/mfa-setup");
+          return;
+        }
         if (active) setSession(currentSession);
       } catch (loadError) {
         if (loadError instanceof ApiError && loadError.status === 401) {
